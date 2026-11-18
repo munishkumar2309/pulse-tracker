@@ -40,6 +40,7 @@ Hand work to the agent that owns the area. Each one knows its files, docs and "d
 - Native features go through `src/native/*` bridges that have browser fallbacks, so everything runs in a desktop browser.
 - Original design only. Never copy Fitbit or Whoop code, assets, logos or names.
 - **Commits:** no `Co-Authored-By: Claude` trailer or any Claude attribution in commits or PRs (the owner's explicit rule).
+- **Branches:** push directly to `main` (the owner's explicit rule for this project). No feature branches or pull requests unless asked. Every push to `main` builds the APK in GitHub Actions.
 
 ## Status
 Plan: `C:\Users\munish.kumar_bajajca\.claude\plans\so-i-want-to-playful-cocke.md`. Phases: 0 REA teardown → 1 health core → 2 money → 3 food → 4 Android → 5 polish. The current phase is tracked in `docs/CHANGELOG.md`.

@@ -3,6 +3,7 @@
 Newest first. One line per change: date, area, what changed, which files and docs.
 
 ## 2026-11-18
+- **CI fix.** First APK build failed at `android/app/build.gradle:11` ("Value is null"): Groovy command-call parsing of `versionCode (x).toInteger()`. Switched versionCode/versionName to `=` assignments.
 - **Phase 4, Android.** Capacitor 8 project; our own `SmsReaderPlugin` (inbox since last sync + live listener); Health Connect sync (steps, sleep, weight, resting HR; manual entries win); resting HR now feeds readiness; Settings → Phone sync; Android cloud backup disabled; Health Connect write permissions removed; privacy policy page; fixed signing key + versionCode from the CI run number; GitHub Actions workflow builds the signed APK. 89 tests. (android/*, src/native/*, .github/workflows/android.yml, scripts/make-keystore.mjs; docs/ANDROID.md)
 - Repo pushed to the private github.com/munishkumar2309/pulse-tracker. No Claude co-author trailer from now on (CLAUDE.md rule).
 - **UI fixes at 360 px.** Input base styles moved into `@layer base` (they were overriding Tailwind, so Settings scrolled sideways); checkboxes are no longer styled as text fields. The Food ring shows "1,289 / kcal eaten" so it no longer crowds the other rings. BMI notes "(Asian range)". Safe-area top padding for the Android status bar. All 5 screens checked for horizontal overflow: none. (index.css, App.tsx, Today.tsx, Money.tsx; docs/UI.md)

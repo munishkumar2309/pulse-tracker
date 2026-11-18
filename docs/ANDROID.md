@@ -23,12 +23,14 @@ Capacitor 8 wraps the built web app (`dist/`) in a native Android app. App id `a
 - **Local:** needs JDK 21 + Android SDK (not installed on this laptop): `npm run build && npx cap sync android && cd android && ./gradlew assembleRelease`.
 - After changing anything in `src/`, CI handles the sync. When adding a Capacitor plugin, run `npx cap sync android` locally and commit the `android/` changes.
 
-## Installing on the phone
-1. Download and unzip the artifact on the phone (or transfer the APK).
-2. Open the APK and allow "Install unknown apps" for the browser/Files app when asked.
-3. Google Play Protect may warn about an unknown developer. This is expected for a personal sideloaded app.
-4. In Pulse: Settings → Phone sync → **Allow access and sync now**. Grant SMS, then the Health Connect read permissions (steps, sleep, weight, resting heart rate).
-5. Updates: install the newer APK over the old one. Data is kept because the signing key is the same.
+## Installing on the phone: USB (ADB) only
+**Opening the APK on the phone does not work in India.** Play Protect's *enhanced fraud protection* (Oct 2024) blocks apps that request READ_SMS/RECEIVE_SMS when installed from a browser, messaging app or file manager, and there is no "install anyway" option. Installing over USB with ADB works (verified 2026-11-18 on a Galaxy S23 FE, Android 16), and the SMS permissions are then installer-exempt, so they can be granted normally.
+
+1. Phone: Settings → About phone → tap Build number 7× → Developer options → **USB debugging** on. Connect by USB and tap **Allow**.
+2. Laptop: `adb` is at `%LOCALAPPDATA%\Android\platform-tools\adb.exe` (Google platform-tools 37.0.1, signature verified).
+3. Download the `pulse-apk` artifact from GitHub Actions, unzip it, then run `adb install -r pulse-<run>.apk` (`-r` keeps the data).
+4. In Pulse: Settings → Phone sync → **Allow access and sync now**. Grant SMS, then the Health Connect read permissions.
+5. Updates: repeat step 3 with the new APK. The signing key is the same, so data is kept. USB debugging can be turned off between updates.
 
 ## Behaviour notes
 - New SMS are caught live while Pulse is open. When it is closed, they are picked up on next open (inbox read since last sync). No background service runs, which saves battery.

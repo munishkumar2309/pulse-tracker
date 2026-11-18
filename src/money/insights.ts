@@ -1,7 +1,10 @@
 // Spending analytics over Transaction[]. Pure functions; amounts in paise.
 import type { Transaction } from '../db/schema'
 
-export const isSpend = (t: Transaction) => t.type === 'debit' && !t.excluded
+/** Money put away (FD, SIP, stocks, gold). Tracked on its own, not counted as spending. */
+export const INVESTMENTS = 'Investments'
+export const isInvestment = (t: Transaction) => t.type === 'debit' && !t.excluded && t.category === INVESTMENTS
+export const isSpend = (t: Transaction) => t.type === 'debit' && !t.excluded && t.category !== INVESTMENTS
 export const monthOf = (date: string) => date.slice(0, 7) // YYYY-MM
 const sum = (ts: Transaction[]) => ts.reduce((a, t) => a + t.amountPaise, 0)
 
@@ -15,6 +18,7 @@ export function totals(txns: Transaction[]) {
   return {
     spend: sum(txns.filter(isSpend)),
     income: sum(txns.filter((t) => t.type === 'credit' && !t.excluded)),
+    invested: sum(txns.filter(isInvestment)),
   }
 }
 
@@ -22,11 +26,49 @@ export function inMonth(txns: Transaction[], month: string) {
   return txns.filter((t) => monthOf(t.date) === month)
 }
 
-export function monthSummary(txns: Transaction[], month: string) {
+/** Rows of `month` dated on or before day `uptoDay` (1–31). Without `uptoDay`, the whole month. */
+export function inMonthUpTo(txns: Transaction[], month: string, uptoDay?: number) {
+  const rows = inMonth(txns, month)
+  return uptoDay ? rows.filter((t) => +t.date.slice(8, 10) <= uptoDay) : rows
+}
+
+/**
+ * Month totals and the change against last month. With `uptoDay` (a month still in progress),
+ * the change is like-for-like: this month's days 1..uptoDay against the same days of last month.
+ * `prevSpend` is always last month's full total.
+ */
+export function monthSummary(txns: Transaction[], month: string, uptoDay?: number) {
   const cur = totals(inMonth(txns, month))
-  const prev = totals(inMonth(txns, prevMonth(month)))
-  const changePct = prev.spend ? Math.round(((cur.spend - prev.spend) / prev.spend) * 100) : null
-  return { ...cur, prevSpend: prev.spend, changePct }
+  const prevFull = totals(inMonth(txns, prevMonth(month)))
+  const prevSame = uptoDay ? totals(inMonthUpTo(txns, prevMonth(month), uptoDay)).spend : prevFull.spend
+  const changePct = prevSame ? Math.round(((cur.spend - prevSame) / prevSame) * 100) : null
+  return { ...cur, prevSpend: prevFull.spend, prevSameSpend: prevSame, changePct, likeForLike: !!uptoDay }
+}
+
+/**
+ * Category-by-category comparison with last month (like-for-like when `uptoDay` is given).
+ * Sorted by the size of the change, biggest first. `pct` is null for a category new this month.
+ */
+export function compareMonths(txns: Transaction[], month: string, uptoDay?: number) {
+  const now = new Map(byCategory(inMonth(txns, month)).map((c) => [c.category, c.paise]))
+  const before = new Map(byCategory(inMonthUpTo(txns, prevMonth(month), uptoDay)).map((c) => [c.category, c.paise]))
+  return [...new Set([...now.keys(), ...before.keys()])]
+    .map((category) => {
+      const a = now.get(category) ?? 0
+      const b = before.get(category) ?? 0
+      return { category, now: a, prev: b, delta: a - b, pct: b ? Math.round(((a - b) / b) * 100) : null }
+    })
+    .sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta) || y.now - x.now)
+}
+
+/** Spend per month for the `count` months ending at `month`, oldest first, with the biggest category of each. */
+export function monthlyHistory(txns: Transaction[], month: string, count = 6) {
+  return [...Array(count)].map((_, i) => {
+    const m = prevMonth(month, count - 1 - i)
+    const rows = inMonth(txns, m)
+    const top = byCategory(rows)[0]
+    return { month: m, spend: totals(rows).spend, invested: totals(rows).invested, topCategory: top?.category ?? null, topPaise: top?.paise ?? 0 }
+  })
 }
 
 export function byCategory(txns: Transaction[]) {

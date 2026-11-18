@@ -3,7 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, FileUp, MessageSquareText, Plus } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from 'recharts'
 import { AnimatedNumber, Page } from '../components/motion'
 import { Field, PrimaryButton, Sheet } from '../components/Sheet'
@@ -13,10 +13,10 @@ import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group'
 import { CATEGORIES, CATEGORY_BY_NAME } from '../data/categories'
 import { db, type Channel, type Transaction } from '../db/schema'
 import { dayKey, formatINR, formatINRShort } from '../lib/format'
-import { addManualTxn, ingestSms, ingestStatement, setCategory, splitPasted, type IngestResult } from '../money/ingest'
+import { addManualTxn, autoCategorizeOther, ingestSms, ingestStatement, setCategory, splitPasted, type IngestResult } from '../money/ingest'
 import { PdfPasswordError, readStatementFile } from '../money/statementFiles'
 import { detectColumns, rowsToTxns, type StatementTxn } from '../money/statementImport'
-import { budgetStatus, byCategory, categoryShifts, dailySpend, habits, inMonth, isSpend, monthSummary, prevMonth, recurring, topMerchants } from '../money/insights'
+import { budgetStatus, byCategory, categoryShifts, compareMonths, dailySpend, habits, inMonth, isSpend, monthlyHistory, monthSummary, prevMonth, recurring, topMerchants } from '../money/insights'
 import { tap } from '../native/haptics'
 
 const catColor = (name: string) => `var(--cat-${CATEGORY_BY_NAME[name]?.color ?? 'c19'})`
@@ -34,6 +34,8 @@ export function Money() {
   const [editing, setEditing] = useState<Transaction | null>(null)
   const all = useLiveQuery(() => db.transactions.where('date').aboveOrEqual(prevMonth(month, 5) + '-01').toArray(), [month])
   const budgets = useLiveQuery(() => db.budgets.toArray(), [])
+  // Re-check rows stuck in "Other" (new keywords, new rules). Hand-picked categories are never touched.
+  useEffect(() => { autoCategorizeOther().catch(() => {}) }, [])
 
   const view = useMemo(() => {
     if (!all) return null
@@ -42,6 +44,7 @@ export function Money() {
     const isThisMonth = month === dayKey().slice(0, 7)
     const dim = new Date(+month.slice(0, 4), +month.slice(5, 7), 0).getDate()
     const lastDay = isThisMonth ? new Date().getDate() : dim
+    const upto = isThisMonth ? lastDay : undefined // in-progress month: compare the same days of last month
     // Bars for the chosen range.
     let bars: { label: string; rupees: number }[] = []
     if (range === 'day') {
@@ -63,7 +66,9 @@ export function Money() {
     }
     return {
       cur, cats, bars,
-      summary: monthSummary(all, month),
+      summary: monthSummary(all, month, upto),
+      compare: compareMonths(all, month, upto),
+      history: monthlyHistory(all, month, 6),
       shifts: all.some((t) => t.date < month + '-01') ? categoryShifts(all, month).slice(0, 3) : [],
       habit: habits(cur),
       rec: recurring(all),
@@ -96,11 +101,12 @@ export function Money() {
         <div className="mt-1 flex flex-wrap items-center gap-2 text-[13.5px] text-muted-foreground">
           {summary.changePct === null ? <span>No spending last month to compare.</span> : (
             <span className="rounded-full px-2 py-0.5 text-[12.5px] font-semibold" style={{ background: `color-mix(in srgb, ${summary.changePct > 0 ? 'var(--bad)' : 'var(--ok)'} 14%, transparent)`, color: summary.changePct > 0 ? 'var(--bad)' : 'var(--ok)' }}>
-              {summary.changePct > 0 ? '▲' : '▼'} {Math.abs(summary.changePct)}% vs last month
+              {summary.changePct > 0 ? '▲' : '▼'} {Math.abs(summary.changePct)}% vs {summary.likeForLike ? `same days of ${shortMonth(prevMonth(month))}` : shortMonth(prevMonth(month))}
             </span>
           )}
           {summary.income > 0 && <span>Money in <b className="num-tight text-foreground">{formatINR(summary.income)}</b></span>}
         </div>
+        {summary.invested > 0 && <p className="mt-1 text-[13px] text-muted-foreground">📈 Invested <b className="num-tight text-foreground">{formatINR(summary.invested)}</b> (FD, SIP, stocks, gold; not counted as spending)</p>}
         <div className="mt-4 grid grid-cols-3 gap-2">
           <Action icon={<MessageSquareText size={18} />} label="Bank SMS" onClick={() => setSheet('sms')} primary />
           <Action icon={<Plus size={18} />} label="Expense" onClick={() => setSheet('manual')} />
@@ -158,6 +164,8 @@ export function Money() {
             </section>
           )}
 
+          <MonthCompare month={month} rows={view.compare} summary={summary} cats={cats} onPick={(c) => { pick(c); setTab('txns') }} />
+
           <section className="card p-4" aria-label="Spending over time">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-[16px] font-semibold">Spending over time</h2>
@@ -176,6 +184,29 @@ export function Money() {
                 <Bar dataKey="rupees" fill="var(--color-rupees)" radius={[6, 6, 2, 2]} animationDuration={800} />
               </BarChart>
             </ChartContainer>
+            {range === 'month' && (
+              <ul className="mt-2" aria-label="Month by month">
+                {[...view.history].reverse().map((h, i, arr) => {
+                  const before = arr[i + 1]?.spend
+                  const pct = before ? Math.round(((h.spend - before) / before) * 100) : null
+                  return (
+                    <li key={h.month}>
+                      <button type="button" onClick={() => { tap(); setMonth(h.month); setFilter(null) }} aria-current={h.month === month}
+                        className={`flex w-full items-center justify-between gap-3 rounded-[10px] px-2 py-2 text-left text-[14px] ${h.month === month ? 'bg-muted font-semibold' : ''}`}>
+                        <span className="min-w-0">
+                          <span className="block">{monthName(h.month)}</span>
+                          <span className="block truncate text-[12px] font-normal text-muted-foreground">{h.topCategory ? `Most on ${h.topCategory} (${formatINRShort(h.topPaise)})` : 'No spending'}</span>
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <span className="block num-tight">{formatINR(h.spend)}</span>
+                          {pct !== null && <span className="block text-[12px] font-normal" style={{ color: pct > 0 ? 'var(--bad)' : pct < 0 ? 'var(--ok)' : 'var(--muted-foreground)' }}>{pct === 0 ? 'same' : `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%`}</span>}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </section>
 
           {view.budget.length > 0 && (
@@ -243,7 +274,7 @@ export function Money() {
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[17px]" style={{ background: `color-mix(in srgb, ${catColor(t.category)} 16%, transparent)` }} aria-hidden>{CATEGORY_BY_NAME[t.category]?.icon ?? '•'}</span>
                     <span className="flex-1 min-w-0">
                       <span className="block truncate text-[14.5px]">{t.merchant}</span>
-                      <span className="block text-[12.5px] text-muted-foreground">{new Date(t.date + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {t.category}{t.excluded ? ' (not counted)' : ''}</span>
+                      <span className="block text-[12.5px] text-muted-foreground">{new Date(t.date + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {t.category}{t.excluded ? ' (not counted)' : t.category === 'Investments' && t.type === 'debit' ? ' (saved, not spent)' : ''}</span>
                     </span>
                     <span className={`num-tight text-[14.5px] font-semibold ${t.type === 'credit' ? 'text-ok' : ''}`}>{t.type === 'credit' ? '+' : ''}{formatINR(t.amountPaise)}</span>
                   </button>
@@ -259,6 +290,47 @@ export function Money() {
       <Sheet open={sheet === 'statement'} onClose={() => setSheet(null)} title="Import bank statement"><StatementImport onDone={() => setSheet(null)} /></Sheet>
       <Sheet open={!!editing} onClose={() => setEditing(null)} title="Change category">{editing && <CategoryEditor t={editing} onDone={() => setEditing(null)} />}</Sheet>
     </Page>
+  )
+}
+
+type CompareRow = ReturnType<typeof compareMonths>[number]
+function MonthCompare({ month, rows, summary, cats, onPick }: { month: string; rows: CompareRow[]; summary: ReturnType<typeof monthSummary>; cats: { category: string; paise: number }[]; onPick: (c: string) => void }) {
+  const [showAll, setShowAll] = useState(false)
+  const last = shortMonth(prevMonth(month))
+  if (!summary.prevSameSpend && !summary.prevSpend) return null // nothing to compare with yet
+  const diff = summary.spend - summary.prevSameSpend
+  const when = summary.likeForLike ? `by this point in ${last}` : `in ${last}`
+  const ups = rows.filter((r) => r.delta > 0)
+  const top = cats[0]
+  const shown = showAll ? rows : rows.slice(0, 5)
+  return (
+    <section className="card p-4" aria-label={`Compared with ${last}`}>
+      <h2 className="text-[16px] font-semibold">Compared with {last}</h2>
+      <p className="mt-1 text-[14.5px] leading-snug">
+        {diff === 0 ? `Same as ${when}.` : <>You've spent <b className="num-tight" style={{ color: diff > 0 ? 'var(--bad)' : 'var(--ok)' }}>{formatINR(Math.abs(diff))} {diff > 0 ? 'more' : 'less'}</b> than {when}.</>}
+        {ups[0] && <> The biggest rise is <b>{ups[0].category}</b> ({ups[0].pct === null ? 'new' : `+${ups[0].pct}%`}, {formatINR(ups[0].delta)} more).</>}
+        {top && summary.spend > 0 && <> You spend the most on <b>{top.category}</b>: {Math.round((top.paise / summary.spend) * 100)}% of this month.</>}
+      </p>
+      {summary.likeForLike && <p className="mt-1 text-[12.5px] text-muted-foreground">Compares day 1 to today of both months, so a half-finished month isn't set against a full one. {last} in full: {formatINR(summary.prevSpend)}.</p>}
+      <ul className="mt-2">
+        {shown.map((r) => (
+          <li key={r.category}>
+            <button type="button" onClick={() => onPick(r.category)} className="flex w-full items-center gap-3 rounded-[10px] px-1 py-2 text-left active:bg-muted">
+              <span className="w-6 text-center text-[17px]" aria-hidden>{CATEGORY_BY_NAME[r.category]?.icon ?? '•'}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14.5px]">{r.category}</span>
+                <span className="block text-[12px] text-muted-foreground num-tight">{formatINR(r.now)} <span>vs {formatINR(r.prev)}</span></span>
+              </span>
+              <span className="shrink-0 rounded-full px-2 py-0.5 text-[12.5px] font-semibold num-tight"
+                style={{ background: `color-mix(in srgb, ${r.delta > 0 ? 'var(--bad)' : r.delta < 0 ? 'var(--ok)' : 'var(--muted-foreground)'} 14%, transparent)`, color: r.delta > 0 ? 'var(--bad)' : r.delta < 0 ? 'var(--ok)' : 'var(--muted-foreground)' }}>
+                {r.delta === 0 ? 'same' : `${r.delta > 0 ? '▲' : '▼'} ${formatINRShort(Math.abs(r.delta))}`}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {rows.length > 5 && <button type="button" onClick={() => setShowAll(!showAll)} className="mt-1 text-[13.5px] font-semibold text-primary">{showAll ? 'Show fewer' : `Show all ${rows.length} categories`}</button>}
+    </section>
   )
 }
 

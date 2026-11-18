@@ -55,6 +55,7 @@ export interface Transaction {
   source: Source
   raw?: string // original SMS or statement line
   excluded?: boolean // transfers, CC bill payments, etc. (kept out of spend totals)
+  userSet?: boolean // category picked by the user; automatic re-categorising never touches it
 }
 
 export interface CategoryRule { merchantKey: string; category: string }

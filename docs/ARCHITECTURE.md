@@ -29,7 +29,7 @@ src/
   money/
     smsParser.ts (+test) SMS text → ParsedSms | {rejected}; txnId() for dedupe
     categorize.ts        rule → card bill/ATM → keyword → default
-    ingest.ts (+test)    the ONLY writer of transactions: ingestSms, ingestStatement, addManualTxn, setCategory (DB test uses fake-indexeddb)
+    ingest.ts (+test)    the ONLY writer of transactions: ingestSms, ingestStatement, addManualTxn, setCategory, autoCategorizeOther (DB test uses fake-indexeddb)
     statementImport.ts (+test) rows → StatementTxn: detectColumns, parseStatementDate, parseAmount, merchantFromNarration
     statementFiles.ts    File → rows: CSV (papaparse), XLSX (SheetJS), PDF (pdfjs, password) — lazy-loaded
     insights.ts          monthSummary, byCategory, topMerchants, dailySpend, habits, recurring, categoryShifts, budgetStatus
@@ -60,7 +60,7 @@ docs/                   these guides; research/ holds the Fitbit/WHOOP teardown
 | water | `++id`, date | ml, at |
 | steps | `date` | one row per day, count, source |
 | sleep | `++id`, date | date = day you woke; start/end ISO; minutes; stages? |
-| transactions | `id`, date, category, merchantKey, type, [date+type] | amountPaise (integer), excluded = not counted as spend |
+| transactions | `id`, date, category, merchantKey, type, [date+type] | amountPaise (integer), excluded = not counted as spend, userSet = category picked by hand (auto re-categorising skips it) |
 | rules | `merchantKey` | user's "always use this category" choices |
 | budgets | `category` | monthlyPaise |
 | foods | `id`, name, barcode, source | (Phase 3) per100g nutrition, serving |

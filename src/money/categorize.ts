@@ -40,3 +40,17 @@ export function categorize(t: CategorizeInput, rules: Map<string, string> = new 
   if (t.channel === 'atm') return pick('Cash')
   return pick(match(t.merchantKey, 'debit') ?? match(t.raw ?? '', 'debit') ?? 'Other')
 }
+
+/**
+ * Re-check rows that ended up in "Other" (keywords improve, rules get added). Rows the user
+ * categorised by hand are left alone. Returns only the rows whose category changes.
+ */
+export function recategorizeOther(
+  rows: { id: string; merchantKey: string; raw?: string; type: TxnType; channel: Channel; category: string; userSet?: boolean }[],
+  rules: Map<string, string> = new Map(),
+): { id: string; category: string; excluded: boolean }[] {
+  return rows
+    .filter((t) => t.category === 'Other' && !t.userSet)
+    .map((t) => ({ id: t.id, ...categorize(t, rules) }))
+    .filter((c) => c.category !== 'Other')
+}

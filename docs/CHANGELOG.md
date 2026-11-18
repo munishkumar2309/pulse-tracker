@@ -3,6 +3,7 @@
 Newest first. One line per change: date, area, what changed, which files and docs.
 
 ## 2026-11-18
+- **Month-wise comparison and auto-categorising.** "vs last month" is now like-for-like for the month in progress (days 1..today against the same days of last month); before, a part month was compared with a full one. New "Compared with <month>" card (per-category change, biggest rise, where you spend the most) and a month-by-month list under the Month chart. Investments are now kept out of spend and shown as "Invested" (the intent of the previous change; the code still counted them). Rows stuck in Other are re-categorised automatically when Money opens; hand-picked categories (new `userSet` field, not indexed, so no schema version bump) are never touched. About 60 more merchant keywords (medical/chemist, dairy/milk, toll, insurance, Lenskart and others). 123 tests. (money/insights.ts, categorize.ts, ingest.ts, money.test.ts, data/categories.ts, db/schema.ts, screens/Money.tsx, Settings.tsx; docs/MONEY.md, UI.md)
 - **UI v2: Fitbit-style redesign, motion, app lock, GPS, interactive money charts.**
   - Theme: shadcn tokens (Nova preset) with the old names aliased; Geist font.
   - Motion: rings, count-up, tile stagger, tab pill, page fades (reduced-motion respected), plus haptics.

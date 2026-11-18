@@ -1,6 +1,6 @@
 // SMS / manual transactions → DB. The only module that writes transactions.
 import { db, type Transaction } from '../db/schema'
-import { categorize } from './categorize'
+import { categorize, recategorizeOther } from './categorize'
 import { dayKey } from '../lib/format'
 import { isParsed, parseSms, txnId, type SmsRejectReason } from './smsParser'
 import type { StatementTxn } from './statementImport'
@@ -82,7 +82,7 @@ export async function addManualTxn(t: Omit<Transaction, 'id' | 'source' | 'merch
   const merchantKey = t.merchant.toLowerCase().replace(/[^a-z& ]+/g, ' ').replace(/\s+/g, ' ').trim() || 'manual'
   const auto = categorize({ merchantKey, type: t.type, channel: t.channel }, rules)
   const category = t.category ?? auto.category
-  const row: Transaction = { ...t, id: `m_${Date.now().toString(36)}`, source: 'manual', merchantKey, category, excluded: category === 'Transfers' }
+  const row: Transaction = { ...t, id: `m_${Date.now().toString(36)}`, source: 'manual', merchantKey, category, excluded: category === 'Transfers', userSet: !!t.category }
   await db.transactions.add(row)
   return row
 }
@@ -93,10 +93,22 @@ export async function setCategory(id: string, category: string, always: boolean)
   if (!t) return
   const excluded = category === 'Transfers'
   await db.transaction('rw', db.transactions, db.rules, async () => {
-    await db.transactions.update(id, { category, excluded })
+    await db.transactions.update(id, { category, excluded, userSet: true })
     if (always) {
       await db.rules.put({ merchantKey: t.merchantKey, category })
-      await db.transactions.where('merchantKey').equals(t.merchantKey).modify({ category, excluded })
+      await db.transactions.where('merchantKey').equals(t.merchantKey).modify({ category, excluded, userSet: true })
     }
   })
+}
+
+/** Auto-categorise saved rows still in "Other" with the current keywords and rules. Returns how many changed. */
+export async function autoCategorizeOther(): Promise<number> {
+  const rules = await loadRules()
+  const changes = recategorizeOther(await db.transactions.where('category').equals('Other').toArray(), rules)
+  if (changes.length) {
+    await db.transaction('rw', db.transactions, async () => {
+      for (const c of changes) await db.transactions.update(c.id, { category: c.category, excluded: c.excluded })
+    })
+  }
+  return changes.length
 }

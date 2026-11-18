@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Transaction } from '../db/schema'
-import { categorize } from './categorize'
+import { categorize, recategorizeOther } from './categorize'
 import { isParsed, parseSms } from './smsParser'
-import { budgetStatus, byCategory, categoryShifts, dailySpend, habits, monthSummary, prevMonth, recurring, topMerchants } from './insights'
+import { budgetStatus, byCategory, categoryShifts, compareMonths, dailySpend, habits, monthlyHistory, monthSummary, prevMonth, recurring, topMerchants } from './insights'
 
 describe('categorize', () => {
   const base = { type: 'debit' as const, channel: 'upi' as const }
@@ -45,7 +45,7 @@ describe('insights', () => {
     tx('2026-10-05', 1000, 'Food Delivery', 'Swiggy'),
   ]
   it('month summary excludes transfers and compares with last month', () => {
-    expect(monthSummary(txns, '2026-11')).toEqual({ spend: 280000, income: 8500000, prevSpend: 100000, changePct: 180 })
+    expect(monthSummary(txns, '2026-11')).toEqual({ spend: 280000, income: 8500000, invested: 0, prevSpend: 100000, prevSameSpend: 100000, changePct: 180, likeForLike: false })
   })
   it('by category, sorted', () => {
     expect(byCategory(txns.filter((t) => t.date >= '2026-11')).map((c) => [c.category, c.paise])).toEqual([['Groceries', 200000], ['Food Delivery', 80000]])
@@ -126,5 +126,66 @@ describe('categorize: investments (FD, stocks, mutual funds, gold)', () => {
     expect(categorize({ ...base, merchantKey: 'unknown', raw: 'Rs 500 debited from A/c XX1234 for debit card AMC charges' }).category).not.toBe('Investments')
     expect(categorize({ ...base, merchantKey: 'golds gym' }).category).not.toBe('Investments')
     expect(categorize({ type: 'credit', channel: 'neft_imps', merchantKey: 'infosys dividend' }).category).toBe('Income')
+  })
+})
+
+describe('month-wise comparison', () => {
+  const txns = [
+    tx('2026-10-03', 1000, 'Food Delivery', 'Swiggy'),
+    tx('2026-10-20', 4000, 'Shopping', 'Amazon'),
+    tx('2026-10-05', 5000, 'Investments', 'Groww'),
+    tx('2026-11-02', 1500, 'Food Delivery', 'Swiggy'),
+    tx('2026-11-04', 600, 'Groceries', 'Blinkit'),
+    tx('2026-11-05', 10000, 'Investments', 'Zerodha'),
+  ]
+  it('investments are tracked apart from spend', () => {
+    const s = monthSummary(txns, '2026-11')
+    expect(s.spend).toBe(210000)
+    expect(s.invested).toBe(1000000)
+    expect(byCategory(txns).map((c) => c.category)).not.toContain('Investments')
+  })
+  it('an in-progress month compares like-for-like (same days of last month)', () => {
+    const s = monthSummary(txns, '2026-11', 10)
+    expect(s.prevSpend).toBe(500000) // October in full
+    expect(s.prevSameSpend).toBe(100000) // October 1–10 only
+    expect(s.changePct).toBe(110)
+    expect(s.likeForLike).toBe(true)
+  })
+  it('category comparison, biggest change first; new categories have null pct', () => {
+    expect(compareMonths(txns, '2026-11')).toEqual([
+      { category: 'Shopping', now: 0, prev: 400000, delta: -400000, pct: -100 },
+      { category: 'Groceries', now: 60000, prev: 0, delta: 60000, pct: null },
+      { category: 'Food Delivery', now: 150000, prev: 100000, delta: 50000, pct: 50 },
+    ])
+    expect(compareMonths(txns, '2026-11', 10).map((r) => r.category)).toEqual(['Groceries', 'Food Delivery'])
+  })
+  it('monthly history: oldest first, with the top category', () => {
+    expect(monthlyHistory(txns, '2026-11', 3)).toEqual([
+      { month: '2026-09', spend: 0, invested: 0, topCategory: null, topPaise: 0 },
+      { month: '2026-10', spend: 500000, invested: 500000, topCategory: 'Shopping', topPaise: 400000 },
+      { month: '2026-11', spend: 210000, invested: 1000000, topCategory: 'Food Delivery', topPaise: 150000 },
+    ])
+  })
+})
+
+describe('auto-categorise', () => {
+  const base = { type: 'debit' as const, channel: 'upi' as const }
+  it('new keywords', () => {
+    expect(categorize({ ...base, merchantKey: 'sharma medical' }).category).toBe('Health')
+    expect(categorize({ ...base, merchantKey: 'lenskart' }).category).toBe('Shopping')
+    expect(categorize({ ...base, merchantKey: 'gupta milk dairy' }).category).toBe('Groceries')
+    expect(categorize({ ...base, merchantKey: 'nhai toll plaza' }).category).toBe('Transport')
+    expect(categorize({ ...base, merchantKey: 'policybazaar' }).category).toBe('Bills & Utilities')
+    expect(categorize({ ...base, merchantKey: 'smartbuy' }).category).toBe('Other') // "mart" only as a whole word
+  })
+  it('re-checks "Other" rows but never hand-picked ones', () => {
+    const rows = [
+      { id: 'a', merchantKey: 'lenskart', type: 'debit' as const, channel: 'upi' as const, category: 'Other' },
+      { id: 'b', merchantKey: 'lenskart', type: 'debit' as const, channel: 'upi' as const, category: 'Other', userSet: true },
+      { id: 'c', merchantKey: 'ramesh kumar', type: 'debit' as const, channel: 'upi' as const, category: 'Other' },
+      { id: 'd', merchantKey: 'ramesh kumar', type: 'debit' as const, channel: 'upi' as const, category: 'Other' },
+    ]
+    expect(recategorizeOther(rows)).toEqual([{ id: 'a', category: 'Shopping', excluded: false }])
+    expect(recategorizeOther(rows, new Map([['ramesh kumar', 'Rent']])).map((c) => c.id)).toEqual(['a', 'c', 'd'])
   })
 })

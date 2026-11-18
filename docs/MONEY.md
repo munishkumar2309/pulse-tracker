@@ -39,7 +39,9 @@ Food Delivery, Food & Dining, Groceries, Transport, Fuel, Shopping, Bills & Util
 5. Keywords on the merchant, then keywords on the raw SMS.
 6. Anything else goes to Other.
 
-Keywords match on word boundaries, so "ola" does not match "coca cola". Income keywords never apply to debits.
+Keywords match on word boundaries, so "ola" does not match "coca cola" and "mart" does not match "smartbuy".
+
+**Auto re-categorising (`recategorizeOther` + `ingest.autoCategorizeOther`):** each time the Money screen opens, saved rows still in Other are run through `categorize()` again with the current keywords and rules, so improving the keyword list or adding a rule fixes old rows too. Rows with `userSet` (a category picked by hand in the editor or the Add expense form) are never touched. Income keywords never apply to debits.
 
 **Investments** (`matchFirst`, so it is tried before every other category; the rest keep list order) cover:
 - **Platforms and brokers:** Zerodha, Groww, Upstox and others.
@@ -48,11 +50,13 @@ Keywords match on word boundaries, so "ola" does not match "coca cola". Income k
 - **Deposits and small savings:** FD / fixed / term deposit, recurring deposit, NPS, PPF, Sukanya, NSC, KVP.
 - **Gold:** digital gold, SafeGold, Augmont, MMTC, SGB / gold bond, gold ETF, jewellers such as Tanishq.
 
-`matchFirst` means an SIP by NACH/ECS ("NACH-DR HDFC MUTUAL FUND") and "Bajaj Finance FD" are Investments, while a plain "Bajaj Finance" or "NACH HOME LOAN EMI" stays EMI & Loans. Investments still count as spend. Redemptions, dividends and FD interest are credits, so they go to Income. "amc" and a bare "gold" are deliberately *not* keywords: AMC also means a debit card's annual maintenance charge, and "gold" would catch places like Gold's Gym.
+`matchFirst` means an SIP by NACH/ECS ("NACH-DR HDFC MUTUAL FUND") and "Bajaj Finance FD" are Investments, while a plain "Bajaj Finance" or "NACH HOME LOAN EMI" stays EMI & Loans. **Investments are not counted as spend** (`isSpend` skips them). They are totalled separately as `invested` and shown as "Invested ₹X" on the Money summary; budgets can't be set on them. Redemptions, dividends and FD interest are credits, so they go to Income. "amc" and a bare "gold" are deliberately *not* keywords: AMC also means a debit card's annual maintenance charge, and "gold" would catch places like Gold's Gym.
 
 ## Insights (`insights.ts`)
 Spend means a debit that is not excluded.
-- `monthSummary`: spend, income, previous month, % change.
+- `monthSummary(txns, month, uptoDay?)`: spend, income, invested, last month's full total (`prevSpend`) and the % change. For the month in progress the screen passes today's day, so the change is **like-for-like**: days 1..today of this month against the same days of last month (`prevSameSpend`). A half-finished month is never set against a full one.
+- `compareMonths(txns, month, uptoDay?)`: per category, this month vs last month (like-for-like as above): `now`, `prev`, `delta`, `pct` (null when new), biggest change first. Drives the "Compared with <month>" card: total difference, biggest rise, and the category with the largest share.
+- `monthlyHistory(txns, month, n)`: spend, invested and top category for each of the last n months (the Month range list under the bar chart; tap a month to open it).
 - `byCategory`, `topMerchants`, `dailySpend` (zero-filled), `splitByAccountKind`.
 - `habits`: weekday vs weekend average per day, late-night (22:00–03:00) count and amount, food-delivery count.
 - `recurring`: same merchant in 2 or more months, amounts within ±15%, gaps of 25–35 days. The next date is the same day next month.

@@ -212,7 +212,7 @@ function BudgetForm({ onDone }: { onDone: () => void }) {
   const [vals, setVals] = useState<Record<string, number> | null>(null)
   if (!existing) return null
   const v = vals ?? Object.fromEntries(existing.map((b) => [b.category, b.monthlyPaise / 100]))
-  const cats = CATEGORIES.filter((c) => !c.income && !c.excluded && c.name !== 'Other')
+  const cats = CATEGORIES.filter((c) => !c.income && !c.excluded && c.name !== 'Other' && c.name !== 'Investments') // investments aren't spending
   return (
     <form onSubmit={async (e) => {
       e.preventDefault()

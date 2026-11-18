@@ -1,10 +1,11 @@
 // Money: month summary → interactive donut by category → spend bars (day/week/month) → budgets → habits →
-// top places → repeating payments; Transactions tab with recategorise. Sheets: SMS paste, expense, statement.
+// top places → repeating payments; Forecast tab (components/MoneyForecast); Payments tab with recategorise. Sheets: SMS paste, expense, statement.
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, FileUp, MessageSquareText, Plus } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from 'recharts'
+import { MoneyForecast } from '../components/MoneyForecast'
 import { AnimatedNumber, Page } from '../components/motion'
 import { Field, PrimaryButton, Sheet } from '../components/Sheet'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../components/ui/chart'
@@ -115,9 +116,10 @@ export function Money() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => { tap(); setTab(v) }} className="mt-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="txns">Transactions ({cur.length})</TabsTrigger>
+          <TabsTrigger value="forecast">Forecast</TabsTrigger>
+          <TabsTrigger value="txns">Payments ({cur.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-3">
@@ -257,6 +259,8 @@ export function Money() {
             </section>
           )}
         </TabsContent>
+
+        <TabsContent value="forecast"><MoneyForecast /></TabsContent>
 
         <TabsContent value="txns">
           <div className="card p-2">

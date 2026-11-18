@@ -1,6 +1,6 @@
 # Money
 
-Files: `src/money/smsParser.ts`, `categorize.ts`, `ingest.ts`, `insights.ts`, `src/data/categories.ts`, `src/screens/Money.tsx`.
+Files: `src/money/smsParser.ts`, `categorize.ts`, `ingest.ts`, `insights.ts`, `forecast.ts`, `src/data/categories.ts`, `src/screens/Money.tsx`.
 
 ## Pipeline
 ```
@@ -62,6 +62,18 @@ Spend means a debit that is not excluded.
 - `recurring`: same merchant in 2 or more months, amounts within ±15%, gaps of 25–35 days. The next date is the same day next month.
 - `categoryShifts`: this month vs the average of the previous 3 months. Shown when the move is at least 25% and at least ₹500, and only once some earlier-month data exists.
 - `budgetStatus`: `over` at 100% or more; `ahead` when the % used exceeds the % of the month gone by more than 10 points.
+
+## Forecasts (`forecast.ts`, UI: Money → Forecast tab, `components/MoneyForecast.tsx`)
+All forecasts run on the phone from the user's own transactions and are labelled as estimates. History = complete months only (up to 12). The first month is dropped when it starts after the 5th, because the 90-day SMS backfill would make it look cheap.
+
+| Question | Method | Why this one |
+|---|---|---|
+| Spend in the next 3 months | `holtDamped`: Holt's linear exponential smoothing with a **damped trend**. α (level), β (trend) and φ (damping) are picked per series from a small grid by one-step-ahead squared error. 80% band = ±1.28 × RMSE × √h. Under 3 months: the mean, with a wide band. | Typical history is 3–12 monthly points. That is far too few for ARIMA, Prophet, gradient boosting or neural nets, which overfit or can't be fitted. Damped-trend smoothing is a long-standing strong benchmark on short business series (M3/M4 forecasting competitions). It weights recent months more and doesn't let a trend run away. It is interpretable, needs no training server, and runs instantly in the app. Seasonality (e.g. Diwali) needs 2+ years of data and is not modelled. |
+| Where this month is heading | `projectCategories` / `projectTotal`: per category. **Lumpy** categories (≤ 2 payments in a usual month: rent, EMI, fuel) = max(spent so far, usual), so a rent paid on the 2nd isn't extrapolated. Everyday categories: `projectMonth` = so far + remaining days × (w × this month's daily rate + (1 − w) × usual daily rate), w = day / days in month. | A shrinkage blend: early in the month the usual pattern dominates; late in the month the actual pace does. Avoids the "day-3 panic" of naive pace × days. |
+| Income ("future earning") | `forecastIncome`: regular sources = same payer with credits in ≥ 2 of the last 3 complete months, each within ±25% of the median (salary), counted at their median, next date = last + 1 month. Other credits = median monthly amount. Band: regular only … regular + the largest other month. | Salary is a fixed, repeating amount, so a trend model would wrongly extrapolate one-off bonuses or refunds. The median ignores outliers. |
+| Where you're spending extra | `spendingExtra`: projected category month vs its **median** month (last 6). Flagged when extra ≥ ₹500 **and** ≥ 20% of usual (any amount for a new category) **and**, with 3+ months, extra > 1.5 × robust σ (σ = 1.4826 × MAD). The top 2 merchants by rise vs their average month are named. | A robust z-score (median/MAD) isn't distorted by one big past month, and the ₹500/20% floors stop noise from small categories. |
+
+Investments, transfers and card bill payments are excluded throughout, as in `isSpend`. Tests: `forecast.test.ts`.
 
 ## Statement import
 Files: `statementFiles.ts` (file → `string[][]`), `statementImport.ts` (pure: rows → `StatementTxn[]`, tested), `ingest.ts` (`ingestStatement`), and the UI in `Money.tsx` (`StatementImport`).

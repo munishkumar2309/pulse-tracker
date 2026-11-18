@@ -25,6 +25,37 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # Food photo model (dima806/indian_food_image_detection → ONNX int8, about 90 MB) bundled into the APK,
+      # so photos work offline from the first use. Cached between runs; re-exported only when the script changes.
+      # If the export fails, the APK is still built and the app downloads the model on first use instead.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache food model
+        id: food-model-cache
+        uses: actions/cache@v4
+        with:
+          path: public/models
+          key: food-model-${{ hashFiles('scripts/export-food-model.py') }}
+
+      - name: Export food photo model
+        id: food-model
+        if: steps.food-model-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch==2.15.0
+          pip install "optimum-onnx[onnxruntime]==0.1.0" transformers
+          npm run export:food-model
+
+      - name: Warn if the food model is missing
+        if: steps.food-model.outcome == 'failure'
+        run: echo "::warning::Food model export failed. This APK will download the model from Hugging Face on the first photo."
+
+      - name: Check food model labels
+        if: hashFiles('public/models/**/labels.json') != ''
+        run: node scripts/check-food-labels.mjs
+
       - name: Build web app
         run: npm run build
 

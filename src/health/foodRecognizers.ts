@@ -47,7 +47,8 @@ async function loadClassifier(onProgress?: Progress): Promise<Classifier> {
   const { pipeline, env } = await import('@huggingface/transformers')
   // A bundled copy (scripts/export-food-model.py) makes it fully offline: then never ask Hugging Face,
   // or the optional-file checks (tokenizer) would fail without internet. Otherwise download once, then cached.
-  const bundled = await fetch(`/models/${LOCAL_MODEL}/config.json`, { method: 'HEAD' }).then((r) => r.ok && !!r.headers.get('content-type')?.includes('json')).catch(() => false)
+  // GET + parse (not HEAD/content-type): works however the WebView's local server answers.
+  const bundled = await fetch(`/models/${LOCAL_MODEL}/config.json`).then((r) => (r.ok ? r.json() : null)).then((c) => !!c?.id2label).catch(() => false)
   env.allowLocalModels = bundled
   env.localModelPath = '/models/'
   env.allowRemoteModels = !bundled

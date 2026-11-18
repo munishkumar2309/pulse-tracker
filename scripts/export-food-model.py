@@ -7,8 +7,9 @@ from Hugging Face on first use, which only works if that repo already has ONNX f
 
 Also writes labels.json: compare it with src/data/foodLabels.ts (every label should have an entry).
 
-Usage (needs internet and Python 3.10+):
-    pip install "optimum[onnxruntime]" transformers torch
+Usage (needs internet and Python 3.10+; CI runs this in .github/workflows/android.yml):
+    pip install --index-url https://download.pytorch.org/whl/cpu torch
+    pip install "optimum-onnx[onnxruntime]" transformers
     npm run export:food-model
 """
 import json
@@ -24,7 +25,10 @@ TMP = pathlib.Path("build/food-model-onnx")
 
 def main() -> None:
     shutil.rmtree(TMP, ignore_errors=True)
-    subprocess.run([sys.executable, "-m", "optimum.exporters.onnx", "--model", MODEL, "--task", "image-classification", str(TMP)], check=True)
+    # optimum 2.x moved ONNX export to the optimum-onnx package; its CLI is `optimum-cli export onnx`.
+    cli = shutil.which("optimum-cli")
+    cmd = [cli, "export", "onnx"] if cli else [sys.executable, "-m", "optimum.exporters.onnx"]
+    subprocess.run([*cmd, "--model", MODEL, "--task", "image-classification", str(TMP)], check=True)
 
     from onnxruntime.quantization import QuantType, quantize_dynamic
 

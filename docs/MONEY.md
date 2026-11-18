@@ -8,7 +8,10 @@ SMS text ──parseSms()──► ParsedSms | {rejected}
           ──categorize(parsed, rules)──► {category, excluded}
           ──txnId()──► dedupe against DB ──► db.transactions
 ```
-Input sources: the paste box in Money ("Add bank SMS") today, the Android SMS reader in Phase 4, and statement import (next).
+Input sources:
+- **Android:** automatic (`src/native/sms.ts`). The first run reads 90 days of inbox, then new SMS on every open/resume, plus a live listener while the app is open. Only commercial sender IDs are parsed.
+- **Browser:** the paste box ("Add bank SMS").
+- **Statements:** see below.
 
 ## SMS parser (`smsParser.ts`)
 Order of checks:

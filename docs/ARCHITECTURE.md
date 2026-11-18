@@ -10,7 +10,7 @@
 | Charts | Recharts 3 | Trends screen |
 | Icons / font | lucide-react, Archivo variable (bundled via @fontsource, offline) | |
 | Tests | Vitest 5 (`npm test`) | Pure logic is tested; UI is checked in a browser |
-| Android (Phase 4) | Capacitor | SMS + Health Connect + barcode plugins |
+| Android | Capacitor 8 + own SMS plugin + @capgo/capacitor-health | built by GitHub Actions (docs/ANDROID.md) |
 
 ## Folder map
 ```
@@ -40,7 +40,9 @@ src/
   lib/format.ts (+test) formatINR (₹1,25,000), formatINRShort (K/L/Cr), dayKey, minutesToHM
   components/           Ring, ReadinessArc, Sheet (+Field, PrimaryButton), LogSheets
   screens/              Today, Money, Food, Trends, Settings, ProfileForm
-  native/               (Phase 4) Capacitor bridges with browser fallbacks
+  native/               Android bridges (no-ops in a browser): sms.ts (+test), health.ts, sync.ts. See docs/ANDROID.md
+android/                Capacitor Android project (our SmsReaderPlugin.java lives here)
+.github/workflows/      android.yml builds the signed APK on every push to main
 docs/                   these guides; research/ holds the Fitbit/WHOOP teardown
 ```
 

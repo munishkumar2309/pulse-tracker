@@ -58,6 +58,11 @@ export function useToday() {
     const hist = stepsHist.filter((s) => s.date !== daysAgo(1))
     const avg14 = hist.length ? hist.reduce((a, s) => a + s.count, 0) / hist.length : null
     const profile = await db.profile.get('me')
+    // Resting HR (Health Connect only): today's vs median of the previous 14 days.
+    const hr = ((await db.meta.get('restingHr'))?.value as { date: string; bpm: number }[] | undefined) ?? []
+    const hrToday = hr.find((h) => h.date === today)?.bpm
+    const hrPrev = hr.filter((h) => h.date < today && h.date >= daysAgo(14)).map((h) => h.bpm).sort((a, b) => a - b)
+    const restingHr = hrToday && hrPrev.length ? { today: hrToday, median14d: hrPrev[Math.floor(hrPrev.length / 2)], readings: hrPrev.length } : undefined
     const now = new Date()
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
     const monthlyBudget = budgets.reduce((a, b) => a + b.monthlyPaise, 0)
@@ -78,6 +83,7 @@ export function useToday() {
         recentWaketimes: mainSleeps.map((s) => s.end),
         yesterdaySteps: yesterday,
         avgSteps14d: avg14,
+        restingHr,
       }),
     }
   }, [])

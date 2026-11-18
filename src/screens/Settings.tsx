@@ -7,6 +7,8 @@ import { useLatestWeight, useProfile } from '../db/hooks'
 import { db } from '../db/schema'
 import { dayKey, formatINR } from '../lib/format'
 import { ProfileForm } from './ProfileForm'
+import { syncHealth } from '../native/health'
+import { smsSupported, syncSmsInbox } from '../native/sms'
 
 const TABLES = ['profile', 'weights', 'water', 'steps', 'sleep', 'transactions', 'rules', 'budgets', 'foods', 'foodLogs', 'meta'] as const
 
@@ -67,6 +69,8 @@ export function Settings() {
         <Row title="Monthly budgets" detail={totalBudget ? `${formatINR(totalBudget)} a month across ${budgets!.length} categories` : 'Not set'} onClick={() => setSheet('budgets')} />
       </ul>
 
+      <PhoneSync />
+
       <section className="mt-7">
         <h2 className="text-[15px] font-semibold">Appearance</h2>
         <div className="mt-2 grid grid-cols-3 gap-2">
@@ -100,6 +104,43 @@ export function Settings() {
       </Sheet>
       <Sheet open={sheet === 'budgets'} onClose={() => setSheet(null)} title="Monthly budgets"><BudgetForm onDone={() => setSheet(null)} /></Sheet>
     </div>
+  )
+}
+
+function PhoneSync() {
+  const meta = useLiveQuery(async () => ({
+    sms: (await db.meta.get('smsLastResult'))?.value as { at: number; added: number; read: number } | undefined,
+    health: (await db.meta.get('healthLastSync'))?.value as number | undefined,
+  }), [])
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+  const when = (t?: number) => (t ? new Date(t).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : 'never')
+
+  if (!smsSupported()) {
+    return (
+      <section className="mt-7">
+        <h2 className="text-[15px] font-semibold">Phone sync</h2>
+        <p className="mt-1 text-[13.5px] text-muted">In the Android app, bank SMS and Health Connect (steps, sleep, weight) sync automatically. In a browser, paste SMS on the Money screen and log health by hand.</p>
+      </section>
+    )
+  }
+  return (
+    <section className="mt-7">
+      <h2 className="text-[15px] font-semibold">Phone sync</h2>
+      <p className="mt-1 text-[13.5px] text-muted">
+        Bank SMS: last read {when(meta?.sms?.at)}{meta?.sms ? `, ${meta.sms.added} new` : ''}. Health Connect: last synced {when(meta?.health)}.
+      </p>
+      <button type="button" disabled={busy} onClick={async () => {
+        setBusy(true); setNote('')
+        try {
+          const [, h] = await Promise.all([syncSmsInbox(), syncHealth(true)])
+          setNote(h && !h.ok ? h.message : 'Up to date.')
+        } catch (e) { setNote((e as Error).message) } finally { setBusy(false) }
+      }} className="mt-3 w-full rounded-[10px] bg-surface-2 py-2.5 text-[14px]">
+        {busy ? 'Syncing…' : 'Allow access and sync now'}
+      </button>
+      {note && <p className="mt-2 text-[13.5px]" role="status">{note}</p>}
+    </section>
   )
 }
 

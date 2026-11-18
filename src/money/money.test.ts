@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Transaction } from '../db/schema'
 import { categorize } from './categorize'
+import { isParsed, parseSms } from './smsParser'
 import { budgetStatus, byCategory, categoryShifts, dailySpend, habits, monthSummary, prevMonth, recurring, topMerchants } from './insights'
 
 describe('categorize', () => {
@@ -85,5 +86,45 @@ describe('insights', () => {
   it('budget status', () => {
     const b = budgetStatus([{ category: 'Food Delivery', paise: 300000 }], [{ category: 'Food Delivery', monthlyPaise: 400000 }, { category: 'Shopping', monthlyPaise: 500000 }], 10, 30)
     expect(b.map((x) => [x.category, x.pct, x.status])).toEqual([['Food Delivery', 75, 'ahead'], ['Shopping', 0, 'ok']])
+  })
+})
+
+describe('categorize: investments (FD, stocks, mutual funds, gold)', () => {
+  // Illustrative SMS shapes, not real messages; add the user's own to REAL_SAMPLES in smsParser.test.ts.
+  const cat = (body: string) => {
+    const p = parseSms(body, new Date(2026, 10, 18, 10, 0))
+    if (!isParsed(p)) throw new Error(`rejected (${p.rejected}): ${body}`)
+    return categorize({ merchantKey: p.merchantKey, raw: p.raw, type: p.type, channel: p.channel, isCardBillPayment: p.isCardBillPayment }).category
+  }
+  it('SIPs by NACH/ACH/ECS go to Investments, not EMI', () => {
+    expect(cat('Rs.5,000.00 debited from A/c XX1234 on 05-11-26 towards NACH-DR- HDFC MUTUAL FUND. Avl Bal Rs 20,000.00')).toBe('Investments')
+    expect(cat('Your A/c XX1234 is debited for Rs.10,000.00 on 05-Nov-26 by ACH-DR ICCL. Avl Bal Rs 9,000.00')).toBe('Investments')
+    expect(cat('Rs 2500 debited from A/c XX1234 on 10-11-26 via ECS to BSE STAR MF. -Axis')).toBe('Investments')
+  })
+  it('fixed and recurring deposits', () => {
+    expect(cat('Rs.1,00,000.00 transferred from A/c XX1234 to FD A/c XX5678 on 18-11-26. -SBI')).toBe('Investments')
+    expect(cat('Rs 3000.00 debited from A/c XX1234 on 18-11-26 towards Recurring Deposit instalment. -ICICI')).toBe('Investments')
+  })
+  it('stocks and brokers', () => {
+    expect(cat('Sent Rs.25,000.00 From HDFC Bank A/C *1234 To zerodha.broking@hdfcbank On 18/11/26 Ref 432112340001')).toBe('Investments')
+    expect(cat('Rs 15000 debited from A/c XX1234 on 18-11-26 to INDIAN CLEARING CORP. -Kotak')).toBe('Investments')
+  })
+  it('gold', () => {
+    expect(cat('Sent Rs.2,000.00 From HDFC Bank A/C *1234 To SAFEGOLD On 18/11/26 Ref 432112340002')).toBe('Investments')
+    const base = { type: 'debit' as const, channel: 'card' as const }
+    expect(categorize({ ...base, merchantKey: 'tanishq' }).category).toBe('Investments')
+    expect(categorize({ ...base, merchantKey: 'sovereign gold bond' }).category).toBe('Investments')
+  })
+  it('a lender FD is an investment; the same lender EMI stays a loan', () => {
+    const base = { type: 'debit' as const, channel: 'neft_imps' as const }
+    expect(categorize({ ...base, merchantKey: 'bajaj finance fd' }).category).toBe('Investments')
+    expect(categorize({ ...base, merchantKey: 'bajaj finance' }).category).toBe('EMI & Loans')
+    expect(categorize({ ...base, merchantKey: 'unknown', raw: 'Rs 12000 debited from A/c XX1234 towards NACH HOME LOAN EMI' }).category).toBe('EMI & Loans')
+  })
+  it('does not misfire', () => {
+    const base = { type: 'debit' as const, channel: 'card' as const }
+    expect(categorize({ ...base, merchantKey: 'unknown', raw: 'Rs 500 debited from A/c XX1234 for debit card AMC charges' }).category).not.toBe('Investments')
+    expect(categorize({ ...base, merchantKey: 'golds gym' }).category).not.toBe('Investments')
+    expect(categorize({ type: 'credit', channel: 'neft_imps', merchantKey: 'infosys dividend' }).category).toBe('Income')
   })
 })

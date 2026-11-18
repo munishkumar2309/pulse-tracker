@@ -9,8 +9,8 @@ import { isSpend } from '../money/insights'
 
 const RANGES = [7, 30, 90] as const
 const shortDate = (d: string) => new Date(d + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-const axis = { stroke: 'var(--muted)', fontSize: 11, tickLine: false, axisLine: false } as const
-const tip = { contentStyle: { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, color: 'var(--ink)' }, labelStyle: { color: 'var(--muted)' } }
+const axis = { stroke: 'var(--muted-foreground)', fontSize: 11, tickLine: false, axisLine: false } as const
+const tip = { contentStyle: { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, color: 'var(--ink)' }, labelStyle: { color: 'var(--muted-foreground)' } }
 
 export function Trends() {
   const [days, setDays] = useState<(typeof RANGES)[number]>(30)
@@ -36,6 +36,7 @@ export function Trends() {
     }
     return {
       weights,
+      sleepPhone: s.some((x) => x.source === 'phone'),
       sleep: [...sleepByDay.entries()].map(([date, min]) => ({ date, hours: +(min / 60).toFixed(2) })),
       steps: st.map((x) => ({ date: x.date, steps: x.count })),
       spend: [...spend.entries()].sort().map(([date, paise]) => ({ date, rupees: Math.round(paise / 100) })),
@@ -51,10 +52,10 @@ export function Trends() {
     <div className="px-4 pt-5">
       <header className="flex items-center justify-between">
         <h1 className="text-[22px] font-semibold">Trends</h1>
-        <div className="flex rounded-full bg-surface-2 p-1" role="tablist" aria-label="Time range">
+        <div className="flex rounded-full bg-muted p-1" role="tablist" aria-label="Time range">
           {RANGES.map((r) => (
             <button key={r} type="button" role="tab" aria-selected={days === r} onClick={() => setDays(r)}
-              className={`rounded-full px-3 py-1 text-[13px] ${days === r ? 'bg-ink text-bg font-semibold' : 'text-muted'}`}>{r} days</button>
+              className={`rounded-full px-3 py-1 text-[13px] ${days === r ? 'bg-foreground text-background font-semibold' : 'text-muted-foreground'}`}>{r} days</button>
           ))}
         </div>
       </header>
@@ -71,7 +72,7 @@ export function Trends() {
         </LineChart>
       </Chart>
 
-      <Chart title="Sleep" color="var(--ring-sleep)" summary={data.sleep.length ? `Average ${minutesToHM(avg(data.sleep.map((s) => s.hours)) * 60)}` : undefined} empty={data.sleep.length ? null : 'Log your sleep to see a trend.'}>
+      <Chart title="Sleep" color="var(--ring-sleep)" summary={data.sleep.length ? `Average ${minutesToHM(avg(data.sleep.map((s) => s.hours)) * 60)}${data.sleepPhone ? ", some nights estimated by phone sensors" : ""}` : undefined} empty={data.sleep.length ? null : 'Log your sleep to see a trend.'}>
         <BarChart data={data.sleep} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
           <CartesianGrid stroke="var(--line)" vertical={false} />
           <ReferenceLine y={profile.sleepGoalMin / 60} stroke="var(--ring-sleep)" strokeDasharray="4 4" />
@@ -111,10 +112,10 @@ function Chart({ title, color, summary, empty, children }: { title: string; colo
     <section className="mt-7" aria-label={title}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-[15px] font-semibold" style={{ color }}>{title}</h2>
-        {summary && <p className="text-[13px] text-muted text-right">{summary}</p>}
+        {summary && <p className="text-[13px] text-muted-foreground text-right">{summary}</p>}
       </div>
-      <div className="mt-2 h-[180px] border-t border-line pt-2">
-        {empty ? <p className="pt-10 text-center text-[14px] text-muted">{empty}</p> : <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>}
+      <div className="mt-2 h-[180px] border-t border-border pt-2">
+        {empty ? <p className="pt-10 text-center text-[14px] text-muted-foreground">{empty}</p> : <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>}
       </div>
     </section>
   )

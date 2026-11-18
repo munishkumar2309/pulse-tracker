@@ -11,7 +11,8 @@ export interface CategorizeInput {
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const MATCHERS = CATEGORIES.filter((c) => c.keywords.length).map((c) => ({
+// matchFirst categories (Investments) are tried first; the rest keep list order.
+const MATCHERS = [...CATEGORIES].sort((a, b) => Number(!!b.matchFirst) - Number(!!a.matchFirst)).filter((c) => c.keywords.length).map((c) => ({
   name: c.name,
   income: !!c.income,
   excluded: !!c.excluded,

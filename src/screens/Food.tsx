@@ -33,11 +33,11 @@ export function Food() {
     <div className="px-4 pt-5">
       <h1 className="text-[22px] font-semibold">Food</h1>
       <section className="mt-4">
-        <p className="text-[13px] text-muted">{left >= 0 ? 'Left to eat today' : 'Over today’s target'}</p>
+        <p className="text-[13px] text-muted-foreground">{left >= 0 ? 'Left to eat today' : 'Over today’s target'}</p>
         <p className="num text-[46px] font-bold leading-none" style={{ color: left >= 0 ? 'var(--ring-food)' : 'var(--bad)' }}>
-          {Math.abs(left).toLocaleString('en-IN')}<span className="text-[16px] font-normal text-muted"> kcal</span>
+          {Math.abs(left).toLocaleString('en-IN')}<span className="text-[16px] font-normal text-muted-foreground"> kcal</span>
         </p>
-        <p className="mt-2 text-[14px] text-muted">{total('kcal').toLocaleString('en-IN')} eaten of {tg.calories.kcal.toLocaleString('en-IN')}</p>
+        <p className="mt-2 text-[14px] text-muted-foreground">{total('kcal').toLocaleString('en-IN')} eaten of {tg.calories.kcal.toLocaleString('en-IN')}</p>
         <div className="mt-4 grid grid-cols-3 gap-3">
           <Macro label="Protein" value={total('protein')} target={tg.protein} />
           <Macro label="Carbs" value={total('carbs')} />
@@ -45,18 +45,18 @@ export function Food() {
         </div>
       </section>
 
-      <ul className="mt-6 divide-y divide-line border-y border-line">
+      <ul className="mt-6 divide-y divide-border border-y border-border">
         {MEALS.map(([m, label]) => {
           const items = logs.filter((l) => l.meal === m)
           return (
             <li key={m} className="py-3">
               <div className="flex items-center justify-between">
-                <span className="text-[15.5px] font-medium">{label}<span className="text-muted text-[13px] font-normal"> {Math.round(items.reduce((a, l) => a + l.kcal, 0))} kcal</span></span>
+                <span className="text-[15.5px] font-medium">{label}<span className="text-muted-foreground text-[13px] font-normal"> {Math.round(items.reduce((a, l) => a + l.kcal, 0))} kcal</span></span>
                 <button type="button" onClick={() => setAdding(m)} className="text-[14px] font-medium py-1 px-1" style={{ color: 'var(--ring-food)' }}>Add food</button>
               </div>
               {items.map((i) => (
                 <button key={i.id} type="button" onClick={() => setEditing(i)} className="flex w-full justify-between py-1 text-left text-[14px]">
-                  <span className="text-muted truncate pr-3">{i.name}{i.grams ? `, ${Math.round(i.grams)} g` : ''}</span>
+                  <span className="text-muted-foreground truncate pr-3">{i.name}{i.grams ? `, ${Math.round(i.grams)} g` : ''}</span>
                   <span className="num-tight shrink-0">{Math.round(i.kcal)}</span>
                 </button>
               ))}
@@ -64,10 +64,10 @@ export function Food() {
           )
         })}
       </ul>
-      <button type="button" onClick={() => setAdding(mealNow())} className="mt-5 w-full rounded-[12px] py-3 text-[16px] font-semibold text-[#0E1822]" style={{ background: 'var(--ring-food)' }}>
+      <button type="button" onClick={() => setAdding(mealNow())} className="mt-5 w-full rounded-[12px] py-3 text-[16px] font-semibold text-primary-foreground" style={{ background: 'var(--ring-food)' }}>
         Add food to {mealName(mealNow()).toLowerCase()}
       </button>
-      <p className="mt-6 mb-2 text-[12px] text-muted leading-relaxed">
+      <p className="mt-6 mb-2 text-[12px] text-muted-foreground leading-relaxed">
         Ingredients: IFCT 2017, National Institute of Nutrition (ICMR). Dishes marked "Estimate" use typical recipes, and home cooking varies. Packaged foods: Open Food Facts.
       </p>
 
@@ -78,8 +78,8 @@ export function Food() {
         {editing && (
           <div className="text-[15px]">
             <p><b>{editing.name}</b></p>
-            <p className="mt-1 text-muted">{Math.round(editing.kcal)} kcal, protein {editing.protein} g, carbs {editing.carbs} g, fat {editing.fat} g{editing.grams ? `, ${Math.round(editing.grams)} g` : ''}</p>
-            <button type="button" onClick={async () => { await db.foodLogs.delete(editing.id!); setEditing(null) }} className="mt-5 w-full rounded-[12px] border border-line py-3 text-[16px] font-semibold text-bad">Remove from {mealName(editing.meal).toLowerCase()}</button>
+            <p className="mt-1 text-muted-foreground">{Math.round(editing.kcal)} kcal, protein {editing.protein} g, carbs {editing.carbs} g, fat {editing.fat} g{editing.grams ? `, ${Math.round(editing.grams)} g` : ''}</p>
+            <button type="button" onClick={async () => { await db.foodLogs.delete(editing.id!); setEditing(null) }} className="mt-5 w-full rounded-[12px] border border-border py-3 text-[16px] font-semibold text-bad">Remove from {mealName(editing.meal).toLowerCase()}</button>
           </div>
         )}
       </Sheet>
@@ -90,9 +90,9 @@ export function Food() {
 function Macro({ label, value, target }: { label: string; value: number; target?: number }) {
   return (
     <div>
-      <p className="text-[12.5px] text-muted">{label}</p>
-      <p className="num-tight text-[19px] font-semibold">{value}<span className="text-[12px] font-normal text-muted"> {target ? `/ ${target} g` : 'g'}</span></p>
-      {target && <div className="mt-1 h-1.5 rounded-full bg-surface-2 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(100, (value / target) * 100)}%`, background: 'var(--ring-food)' }} /></div>}
+      <p className="text-[12.5px] text-muted-foreground">{label}</p>
+      <p className="num-tight text-[19px] font-semibold">{value}<span className="text-[12px] font-normal text-muted-foreground"> {target ? `/ ${target} g` : 'g'}</span></p>
+      {target && <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(100, (value / target) * 100)}%`, background: 'var(--ring-food)' }} /></div>}
     </div>
   )
 }
@@ -138,7 +138,7 @@ function AddFood({ meal, onDone }: { meal: Meal; onDone: () => void }) {
   }, [])
 
   if (stage.kind === 'portion') return <Portion food={stage.food} meal={meal} onBack={() => setStage({ kind: 'search' })} onDone={onDone} />
-  if (stage.kind === 'scan') return (<><BarcodeScanner onCode={onCode} />{busy && <p className="mt-3 text-[14px] text-muted" role="status">Looking up the product…</p>}</>)
+  if (stage.kind === 'scan') return (<><BarcodeScanner onCode={onCode} />{busy && <p className="mt-3 text-[14px] text-muted-foreground" role="status">Looking up the product…</p>}</>)
   if (stage.kind === 'manual') return <QuickAdd meal={meal} onDone={onDone} />
 
   const list = q.trim() ? [...(online ?? []), ...results] : recentFoods
@@ -146,19 +146,19 @@ function AddFood({ meal, onDone }: { meal: Meal; onDone: () => void }) {
     <div>
       <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setOnline(null) }} placeholder="Search dal, roti, paneer, banana…" autoFocus aria-label="Search foods" />
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => setStage({ kind: 'scan' })} className="rounded-[10px] bg-surface-2 py-2.5 text-[14px]">Scan a barcode</button>
-        <button type="button" onClick={() => setStage({ kind: 'manual' })} className="rounded-[10px] bg-surface-2 py-2.5 text-[14px]">Enter calories</button>
+        <button type="button" onClick={() => setStage({ kind: 'scan' })} className="rounded-[10px] bg-muted py-2.5 text-[14px]">Scan a barcode</button>
+        <button type="button" onClick={() => setStage({ kind: 'manual' })} className="rounded-[10px] bg-muted py-2.5 text-[14px]">Enter calories</button>
       </div>
       {msg && <p className="mt-3 text-[14px] text-bad" role="alert">{msg}</p>}
-      {!q.trim() && recentFoods.length > 0 && <h3 className="mt-5 text-[13px] text-muted">Recent</h3>}
-      {!q.trim() && recentFoods.length === 0 && <p className="mt-5 text-[14px] text-muted">Type to search over 600 Indian dishes and ingredients.</p>}
+      {!q.trim() && recentFoods.length > 0 && <h3 className="mt-5 text-[13px] text-muted-foreground">Recent</h3>}
+      {!q.trim() && recentFoods.length === 0 && <p className="mt-5 text-[14px] text-muted-foreground">Type to search over 600 Indian dishes and ingredients.</p>}
       <ul className="mt-2">
         {list.map((f) => (
           <li key={f.id}>
-            <button type="button" onClick={() => pick(f)} className="flex w-full items-center justify-between gap-3 py-2.5 text-left border-b border-line">
+            <button type="button" onClick={() => pick(f)} className="flex w-full items-center justify-between gap-3 py-2.5 text-left border-b border-border">
               <span className="min-w-0">
                 <span className="block truncate text-[15px]">{f.name}</span>
-                <span className="block text-[12.5px] text-muted">
+                <span className="block text-[12.5px] text-muted-foreground">
                   {f.brand ? `${f.brand}, ` : ''}{f.unit && f.unitGrams ? `${Math.round((f.kcal * f.unitGrams) / 100)} kcal per ${f.unit}` : `${f.kcal} kcal per 100 g`}
                   {f.estimate ? ', estimate' : f.source === 'ifct' ? ', IFCT' : ''}
                 </span>
@@ -171,11 +171,11 @@ function AddFood({ meal, onDone }: { meal: Meal; onDone: () => void }) {
         <button type="button" disabled={busy} onClick={async () => {
           setBusy(true); setMsg('')
           try { setOnline(await offSearch(q.trim())) } catch (e) { setMsg((e as Error).message) } finally { setBusy(false) }
-        }} className="mt-3 w-full rounded-[10px] border border-line py-2.5 text-[14px]">
+        }} className="mt-3 w-full rounded-[10px] border border-border py-2.5 text-[14px]">
           {busy ? 'Searching…' : `Search packaged foods online for "${q.trim()}"`}
         </button>
       )}
-      {online !== null && online.length === 0 && <p className="mt-3 text-[14px] text-muted">No packaged foods found online.</p>}
+      {online !== null && online.length === 0 && <p className="mt-3 text-[14px] text-muted-foreground">No packaged foods found online.</p>}
     </div>
   )
 }
@@ -193,9 +193,9 @@ function Portion({ food, meal, onBack, onDone }: { food: FoodItem; meal: Meal; o
       await db.foodLogs.add({ date: dayKey(), meal, foodId: food.id, name: food.name, grams, kcal: n.kcal, protein: n.protein, carbs: n.carbs, fat: n.fat })
       onDone()
     }}>
-      <button type="button" onClick={onBack} className="mb-2 text-[14px] text-muted">Back to search</button>
+      <button type="button" onClick={onBack} className="mb-2 text-[14px] text-muted-foreground">Back to search</button>
       <p className="text-[17px] font-semibold">{food.name}</p>
-      <p className="text-[13px] text-muted">{food.brand ? `${food.brand}. ` : ''}{food.estimate ? 'Estimate for a typical recipe.' : food.source === 'ifct' ? 'IFCT 2017 value, per raw/edible portion.' : food.source === 'off' ? 'From Open Food Facts, entered by volunteers. Check it against the packet.' : ''}</p>
+      <p className="text-[13px] text-muted-foreground">{food.brand ? `${food.brand}. ` : ''}{food.estimate ? 'Estimate for a typical recipe.' : food.source === 'ifct' ? 'IFCT 2017 value, per raw/edible portion.' : food.source === 'off' ? 'From Open Food Facts, entered by volunteers. Check it against the packet.' : ''}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Field label="How much">
           <input type="number" inputMode="decimal" step={options[opt].grams === 1 ? 10 : 0.5} min={0} value={qty || ''} onChange={(e) => setQty(+e.target.value)} autoFocus />
@@ -206,9 +206,9 @@ function Portion({ food, meal, onBack, onDone }: { food: FoodItem; meal: Meal; o
           </select>
         </Field>
       </div>
-      <div className="mb-4 flex items-baseline justify-between rounded-[12px] bg-surface-2 px-4 py-3">
-        <span className="num text-[28px] font-bold" style={{ color: 'var(--ring-food)' }}>{n.kcal}<span className="text-[13px] font-normal text-muted"> kcal</span></span>
-        <span className="text-[13px] text-muted text-right">P {n.protein} g, C {n.carbs} g, F {n.fat} g<br />{Math.round(grams)} g</span>
+      <div className="mb-4 flex items-baseline justify-between rounded-[12px] bg-muted px-4 py-3">
+        <span className="num text-[28px] font-bold" style={{ color: 'var(--ring-food)' }}>{n.kcal}<span className="text-[13px] font-normal text-muted-foreground"> kcal</span></span>
+        <span className="text-[13px] text-muted-foreground text-right">P {n.protein} g, C {n.carbs} g, F {n.fat} g<br />{Math.round(grams)} g</span>
       </div>
       <PrimaryButton disabled={!(grams > 0)} className="!bg-[var(--ring-food)]">Add to {mealName(meal).toLowerCase()}</PrimaryButton>
     </form>

@@ -14,6 +14,16 @@ Personal Android app (React web app wrapped with Capacitor). Tracks spending fro
 - **Keep the docs true.** Any change that adds or moves a file, changes a formula, the schema, a category, or a screen must update the matching doc **and** add a line to `docs/CHANGELOG.md` in the same change. A doc that disagrees with the code is a bug.
 - Each doc lists its files with a one-line purpose, so you can jump straight to the right file.
 
+## Agent team (`.claude/agents/`)
+Hand work to the agent that owns the area. Each one knows its files, docs and "done" checks.
+| Agent | Owns |
+|---|---|
+| `ui` | screens, components, shadcn `ui/`, tokens in `index.css`, layout, theme |
+| `ux` | flows, copy, empty/error states, accessibility (reviews + copy fixes) |
+| `logic` | pure TS + Vitest: `money/*` (not ingest), `health/*`, `lib/*`, `data/*` |
+| `backend` | Dexie schema/hooks, `money/ingest.ts`, `native/*`, `android/`, CI APK build |
+| `qa` | final gate: tsc, tests, build, browser smoke, docs drift, privacy. Reports per owner; doesn't fix |
+
 ## Commands
 | Task | Command |
 |------|---------|

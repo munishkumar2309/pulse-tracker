@@ -73,6 +73,7 @@ export function useToday() {
       kcal: Math.round(food.reduce((a, f) => a + f.kcal, 0)),
       protein: Math.round(food.reduce((a, f) => a + f.protein, 0)),
       sleepMin,
+      sleepFromPhone: sleepToday.some((s) => s.source === 'phone'),
       spentPaise: txns.filter(isSpend).reduce((a, t) => a + t.amountPaise, 0),
       dailyBudgetPaise: monthlyBudget ? Math.round(monthlyBudget / daysInMonth) : null,
       readiness: readiness({

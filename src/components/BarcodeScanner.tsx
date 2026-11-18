@@ -52,7 +52,7 @@ export function BarcodeScanner({ onCode }: { onCode: (code: string) => void }) {
           <p className="absolute bottom-2 inset-x-0 text-center text-[13px] text-white/85">Point at the barcode on the packet</p>
         </div>
       )}
-      {error && <p className="mb-3 text-[14px] text-muted">{error}</p>}
+      {error && <p className="mb-3 text-[14px] text-muted-foreground">{error}</p>}
       <form className="mt-4" onSubmit={(e) => { e.preventDefault(); if (typed.length >= 8) onCode(typed) }}>
         <Field label="Or type the barcode number">
           <input inputMode="numeric" value={typed} onChange={(e) => setTyped(e.target.value.replace(/\D/g, ''))} placeholder="8901058000290" />

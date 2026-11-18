@@ -15,7 +15,7 @@ Input sources:
 
 ## SMS parser (`smsParser.ts`)
 Order of checks:
-1. **Rejections:** OTP, then reminder/future/request, then failed/declined, then promo, then no debit/credit verb, then no amount.
+1. **Rejections:** OTP, then reminder/future/request, then failed/declined, then promo, then fund-house/broker confirmations, then no debit/credit verb, then no amount. A confirmation (folio, NAV, units allotted, contract note, order executed) is rejected only when it has **no a/c or card number**. It repeats money the bank SMS already recorded, while a bank's "debited from A/c XX1234 for SIP Folio …" still parses.
 2. **Type:** the earliest debit verb vs the earliest credit verb. "debited … SWIGGY credited" is therefore a debit.
 3. **Amount:** the first `Rs/INR/₹` amount *not* preceded by "bal/limit/avl/available/outstanding". "debited by 500.0" (SBI, no currency) is handled.
 4. **Account:** last 3–4 digits after `a/c|ac|acct|account|card`. `accountKind` is card if the text mentions a credit card or a card (debit card counts as bank).
@@ -40,6 +40,15 @@ Food Delivery, Food & Dining, Groceries, Transport, Fuel, Shopping, Bills & Util
 6. Anything else goes to Other.
 
 Keywords match on word boundaries, so "ola" does not match "coca cola". Income keywords never apply to debits.
+
+**Investments** (`matchFirst`, so it is tried before every other category; the rest keep list order) cover:
+- **Platforms and brokers:** Zerodha, Groww, Upstox and others.
+- **Stocks:** NSE/BSE, ICCL / Indian Clearing Corp, NSCCL, CDSL/NSDL.
+- **Mutual funds and SIPs:** mutual fund/MF, SIP, BSE StAR MF, CAMS, KFintech, fund-house names.
+- **Deposits and small savings:** FD / fixed / term deposit, recurring deposit, NPS, PPF, Sukanya, NSC, KVP.
+- **Gold:** digital gold, SafeGold, Augmont, MMTC, SGB / gold bond, gold ETF, jewellers such as Tanishq.
+
+`matchFirst` means an SIP by NACH/ECS ("NACH-DR HDFC MUTUAL FUND") and "Bajaj Finance FD" are Investments, while a plain "Bajaj Finance" or "NACH HOME LOAN EMI" stays EMI & Loans. Investments still count as spend. Redemptions, dividends and FD interest are credits, so they go to Income. "amc" and a bare "gold" are deliberately *not* keywords: AMC also means a debit card's annual maintenance charge, and "gold" would catch places like Gold's Gym.
 
 ## Insights (`insights.ts`)
 Spend means a debit that is not excluded.

@@ -1,48 +1,41 @@
 # UI
 
-## Design direction
-- **Subject:** one person in India checking body and money on an Android phone, in short glances. The job of each screen is to answer "how am I doing today?" in about 3 seconds.
-- **One bold element per screen:** the readiness arc (Today), the month total (Money), kcal left (Food). Everything else is quiet and separated by spacing and hairlines, not stacks of identical cards.
-- **Two accents:** turmeric `--body` for the health side, peacock `--money` for the money side. Section headings use them, so you always know which half you're in.
-- **Type:** Archivo variable only. Readings use `.num` (font-stretch 125%, tabular figures) or `.num-tight` (112%). Body text uses normal width. No all-caps labels and no monospace.
-- **Inspired by Fitbit/WHOOP, never copied:** no brand names, dial art or colour schemes taken from either. See `docs/research/fitbit-whoop-teardown.md` for what was studied.
+## Design direction (v2, 2026-11-18)
+- **Fitbit-style, original artwork:** light grey page, white rounded cards (`.card`, radius 20 px, soft shadow), one colour per metric, big friendly numbers, a tile grid on Today. Dark mode uses near-black with dark grey cards. No Fitbit/WHOOP logos, icons, artwork or names.
+- **Motion** (`motion` library): rings fill (`pathLength`), numbers count up (`AnimatedNumber`), Today tiles stagger in, cards squeeze on tap (`Tile`), the tab highlight slides (`layoutId="tab-pill"`), screens fade/rise (`Page`), lock screen fades. `MotionConfig reducedMotion="user"` turns motion off when the phone's "Remove animations" setting is on.
+- **Haptics:** `native/haptics.ts` `tap()` on presses and tab changes; `success()` on goals reached, unlock, walk saved.
+- **Font:** Geist Variable (bundled). Numbers use `.num` (tabular, bold) so they don't jump while animating.
 
 ## Tokens (`src/index.css`)
-| Token | Dark | Light | Use |
-|---|---|---|---|
-| --bg | #0E1822 | #F3F5F2 | page |
-| --surface / --surface-2 | #16232F / #1E2E3C | #FFF / #E9EDEA | sheets / inputs, ring tracks |
-| --line | #2A3B4A | #D5DCD8 | hairlines |
-| --ink / --muted | #E8EEF2 / #8B9CAB | #13202B / #5E6E7B | text |
-| --body | #F2A93B | #C27C12 | health accent |
-| --money | #2FB8A6 | #128A7B | money accent, primary buttons |
-| --bad / --ok | #EF6A5B / #7BC67E | | over budget, readiness bands |
-| --ring-steps/food/water/sleep | amber / pink / sky / lavender | darker in light | rings + Trends charts |
-| --cat-c1…c19 | per category | | category bar; always paired with a text label |
+shadcn names are the source of truth: `--background --foreground --card --muted --muted-foreground --primary --accent --border --destructive --chart-1..5`. Metric colours: `--steps --food --water --sleep --weight --ok --warn --bad`. Category hues: `--cat-c1..c19` (always paired with a text label). Old names (`--bg --surface --surface-2 --line --ink --body --money --ring-*`) are **aliases** kept for back-compat. Don't use them in new code.
 
-**CSS layering rule:** global element styles (inputs etc.) live in `@layer base`. Unlayered CSS beats Tailwind utilities, which once made a hidden file input 646 px wide and broke the Settings layout at 360 px.
-
-Theme: follows the OS by default. Settings → Appearance sets `data-theme` on `<html>` (saved in localStorage, with try/catch).
+- **Text:** `text-foreground`, grey `text-muted-foreground`. **Note:** `text-muted` / `bg-muted` is a *fill* colour, not text.
+- **Theme:** `lib/theme.ts` sets `<html class="dark">` (dark), `data-theme="light"` (force light), or follows the OS. It is called from `main.tsx` (`initTheme`) and Settings.
+- **CSS layering rule:** element styles (inputs etc.) live in `@layer base`, so utilities like `sr-only` and `w-5` still win.
 
 ## Screens
 | Route | File | Shows |
 |---|---|---|
+| (locked) | components/LockGate.tsx | fingerprint button; the system prompt with fingerprint/face/screen-lock fallback |
 | (no profile) | App.tsx `FirstRun` + ProfileForm | setup form |
-| `/` | screens/Today.tsx | readiness arc, 4 rings (tap to log), Body stats (weight, BMI, eat today, goal date), Money today vs daily budget |
-| `/money` | screens/Money.tsx | month switcher, spent, change vs last month, Add bank SMS / Add expense, category bar + list (tap to filter), "Worth knowing" habit notes, budgets, top places, repeating payments, transactions (tap to recategorise) |
-| `/food` | screens/Food.tsx | kcal left, protein/carbs/fat, meals (tap an item to remove), "Add food to <meal by time of day>"; add sheet: search + Recent, Scan a barcode, Enter calories, Search packaged foods online, then the portion picker |
-| `/trends` | screens/Trends.tsx | 7/30/90-day weight (goal line, healthy band), sleep, steps, spend by week |
-| `/settings` | screens/Settings.tsx | profile, budgets, appearance, backup download/restore, delete all |
+| `/` | screens/Today.tsx | header (date, Trends + avatar buttons), hero steps ring (count-up) + Eaten/Water/Sleep bars, Readiness card, tile grid: Sleep, Water (+250 ml quick add), Food, Weight, BMI, Spent today, Last walk, Goal date |
+| `/activity` | screens/Activity.tsx | steps today + 7-day bar chart (shadcn chart), GPS tracker (start → live map, distance, time, pace, pause/resume, finish), past walks (tap → route map + delete) |
+| `/food` | screens/Food.tsx | kcal left, macros, meals, add sheet (search, recent, barcode, online, manual) |
+| `/money` | screens/Money.tsx | month pill, spent (count-up) + vs last month + money in, actions (Bank SMS, Expense, Statement), Tabs: **Overview** (interactive donut: tap a slice/row to highlight, centre shows the category; category bars; spend bar chart with Day/Week/Month toggle; budgets; habit notes; top places; repeating payments) and **Transactions** (filtered by the selected category; tap to recategorise) |
+| `/trends` | screens/Trends.tsx | 7/30/90-day weight, sleep (phone-estimated nights noted), steps, spend |
+| `/settings` | screens/Settings.tsx ("You" tab) | profile card, goals/budgets rows, **App lock** switch + relock delay, Phone sync (SMS, Health Connect, phone sensors), appearance, backup/restore/delete |
+
+Bottom tabs: Today · Activity · Food · Money · You.
 
 ## Components
-- `Ring`: progress ring; above 100% it draws a brighter second lap.
-- `ReadinessArc`: a 240° arc, colour by band, and a "How this is worked out" sheet.
-- `Sheet`: bottom sheet on native `<dialog>` (focus trap, Esc, backdrop tap). Also exports `Field` and `PrimaryButton`.
-- `LogSheets`: weight, water, sleep and steps forms.
-- `BarcodeScanner`: camera + native BarcodeDetector, with typed-number fallback.
+- `motion.tsx`: `AnimatedNumber`, `Tile` (pressable card + haptic), `Page` (screen transition), `IconDot`.
+- `Ring`: animated progress ring with centre content; a second brighter lap above 100%.
+- `RouteMap`: Leaflet + OpenStreetMap tiles (attribution shown; tiles need internet; tracking itself doesn't).
+- `LockGate`, `Sheet` (+`Field`, `PrimaryButton`), `LogSheets`, `BarcodeScanner`, `ReadinessArc` (exports `BAND`).
+- `ui/*`: shadcn (Nova preset, Radix): button, card, chart, tabs, toggle-group, switch, drawer, progress, badge. Add more with `npx shadcn@latest add <name>` or the **shadcn MCP** (`.mcp.json`, after a Claude Code restart).
 
 ## Copy rules
-Sentence case. Buttons say what happens ("Save weight", "Read 3 messages"). Empty states say what to do next. Health estimates are labelled as estimates.
+Sentence case. Buttons say what happens. Empty states say what to do next. Estimates are labelled (readiness, dish nutrition, phone-sensor sleep "From phone sensors (estimate)", walk kcal).
 
 ## Checking UI changes
-Run `npm run dev`, open the app at 390×844 (Playwright MCP or a phone), seed data via `window.db` in the console, and check both themes and that the console has no errors.
+Run `npm run dev`, then use Playwright at 390×844 and seed via `window.db`. Check light and dark, and that the console has no errors. Charts and rings animate in, so wait about 1.5 s before taking a screenshot. **The Playwright browser may be shared with other sessions; its data and theme can change under you.**

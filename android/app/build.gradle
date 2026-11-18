@@ -50,6 +50,9 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // Phone step counting (Recording API) and sleep detection (Sleep API), both on-device. See PhoneTracking.java.
+    implementation 'com.google.android.gms:play-services-fitness:21.2.0'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

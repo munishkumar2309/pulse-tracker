@@ -33,6 +33,9 @@ const BANKS: [RegExp, string][] = [
 const OTP = /\b(otp|one[\s-]?time password|verification code|passcode)\b/i
 const REMINDER = /\b(will be debited|is due|due on|due date|due by|minimum amount due|total amount due|statement (?:is )?generated|has requested|requested (?:money|rs|inr)|collect request|auto[- ]?pay(?:ment)? (?:is )?scheduled|mandate (?:created|registered))\b/i
 const PROMO = /\b(pre-?approved|apply now|t&c apply|limited period|eligible for|offer (?:valid|ends)|get (?:upto|up to|flat))\b/i
+// Fund-house / broker confirmations (CAMS, KFin, Zerodha…) repeat money the bank SMS already recorded.
+// Rejected only when they carry no a/c or card number, so a bank's "debited from A/c XX1234 for SIP" still parses.
+const INVEST_CONFIRMATION = /\b(folio|nav|units? (?:allotted|allocated|credited)|contract note|trade confirmation|order (?:executed|placed))\b/i
 const FAILED = /\b(declined|failed|unsuccessful|could not be processed|insufficient)\b/i
 const DEBIT = /\b(debited|spent|paid|withdrawn|withdrawal|sent|purchase|purchased|transferred|deducted|dr\.?)\b/i
 const CREDIT = /\b(credited|received|deposited|refund(?:ed)?|reversed|cr\.?)\b/i
@@ -162,6 +165,7 @@ export function parseSms(body: string, receivedAt: Date = new Date(), sender?: s
   if (REMINDER.test(text)) return { rejected: 'future_or_reminder' }
   if (FAILED.test(text)) return { rejected: 'failed' }
   if (PROMO.test(text)) return { rejected: 'not_transaction' }
+  if (INVEST_CONFIRMATION.test(text) && !ACCOUNT.test(text)) return { rejected: 'not_transaction' }
 
   const type = findType(text)
   if (!type) return { rejected: 'not_transaction' }

@@ -4,7 +4,8 @@ import Dexie, { type EntityTable } from 'dexie'
 import type { Activity, BmiStandard, Sex } from '../health/calc'
 import type { FoodItem } from '../health/foodSearch'
 
-export type Source = 'manual' | 'health_connect' | 'sms' | 'statement' | 'import'
+/** 'phone' = Pulse's own tracking with the phone's sensors (src/native/phone.ts). */
+export type Source = 'manual' | 'health_connect' | 'phone' | 'sms' | 'statement' | 'import'
 
 export interface Profile {
   id: 'me'
@@ -78,7 +79,20 @@ export interface FoodLog {
 
 export interface Meta { key: string; value: unknown }
 
+/** A GPS-tracked walk/run (src/native/gps.ts, Activity screen). points: [lat, lng, epochMs]. */
+export interface Walk {
+  id?: number
+  date: string
+  start: string // ISO
+  end: string // ISO
+  distanceM: number
+  movingS: number // seconds actually moving (pauses excluded)
+  points: [number, number, number][]
+  kcal?: number
+}
+
 export const db = new Dexie('pulse') as Dexie & {
+  walks: EntityTable<Walk, 'id'>
   profile: EntityTable<Profile, 'id'>
   weights: EntityTable<WeightEntry, 'id'>
   water: EntityTable<WaterEntry, 'id'>
@@ -105,3 +119,6 @@ db.version(1).stores({
   foodLogs: '++id, date, [date+meal]',
   meta: 'key',
 })
+
+// v2 (2026-11-18): GPS walks. Existing tables unchanged.
+db.version(2).stores({ walks: '++id, date, start' })

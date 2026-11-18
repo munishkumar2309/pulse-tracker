@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen widgets (PulseWidget.java). Colours match the app's dark theme in src/index.css. -->
+<resources>
+    <color name="widget_bg">#16232F</color>
+    <color name="widget_ink">#E8EEF2</color>
+    <color name="widget_muted">#8FA0AE</color>
+    <color name="widget_track">#2A3B4A</color>
+    <color name="widget_steps">#F2A93B</color>
+    <color name="widget_sleep">#A88BF0</color>
+    <color name="widget_water">#5AB4F0</color>
+    <color name="widget_money">#2FB8A6</color>
+
+    <string name="widget_today_title">Pulse · Today</string>
+    <string name="widget_today_desc">Steps, last night\'s sleep, water and today\'s spend</string>
+    <string name="widget_steps_desc">Today\'s steps and your goal</string>
+    <string name="widget_steps">Steps</string>
+    <string name="widget_sleep">Sleep</string>
+    <string name="widget_water">Water</string>
+    <string name="widget_spent">Spent</string>
+    <string name="widget_last_night">last night</string>
+    <string name="widget_today">today</string>
+    <string name="widget_none">—</string>
+</resources>

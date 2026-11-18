@@ -1,7 +1,9 @@
 // Health Connect → steps, sleep, weight, resting HR (read-only), via @capgo/capacitor-health (MPL-2.0).
 // Rule from the teardown: manual entries win; Health Connect never overwrites a 'manual' row.
+// Merging with the phone's own tracking follows src/health/sources.ts.
 import { Capacitor } from '@capacitor/core'
 import { db } from '../db/schema'
+import { phoneRowsReplacedBy, pickSteps } from '../health/sources'
 import { dayKey } from '../lib/format'
 
 export const healthSupported = () => Capacitor.getPlatform() === 'android'
@@ -29,9 +31,9 @@ export async function syncHealth(askPermission = false): Promise<HealthSyncResul
   const agg = await Health.queryAggregated({ dataType: 'steps', ...range, bucket: 'day', aggregation: 'sum' })
   for (const s of agg.samples) {
     const date = dayKey(new Date(s.startDate))
-    const existing = await db.steps.get(date)
-    if (existing?.source === 'manual') continue
-    await db.steps.put({ date, count: Math.round(s.values.sum ?? s.value), source: 'health_connect' })
+    const row = pickSteps(await db.steps.get(date), { date, count: Math.round(s.values.sum ?? s.value), source: 'health_connect' })
+    if (!row) continue
+    await db.steps.put(row)
     steps++
   }
 
@@ -49,6 +51,10 @@ export async function syncHealth(askPermission = false): Promise<HealthSyncResul
       if (minutes < 30) continue
       const date = dayKey(new Date(s.endDate))
       if (await db.sleep.where('date').equals(date).filter((x) => x.source === 'manual').count()) continue
+      // A watch session beats the phone's own guess for the same night.
+      const nearby = await db.sleep.where('date').between(dayKey(new Date(s.startDate)), date, true, true).toArray()
+      const replaced = phoneRowsReplacedBy({ start: startIso, end: new Date(s.endDate).toISOString() }, nearby)
+      if (replaced.length) await db.sleep.bulkDelete(replaced.map((x) => x.id!))
       await db.sleep.add({
         date, start: startIso, end: new Date(s.endDate).toISOString(), minutes, source: 'health_connect',
         stages: s.hasStageData ? { deep: stage('deep'), light: stage('light'), rem: stage('rem'), awake } : undefined,

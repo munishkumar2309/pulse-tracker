@@ -37,9 +37,9 @@ function WaterForm({ onDone }: { onDone: () => void }) {
   return (
     <div className="grid grid-cols-3 gap-3">
       {[[150, 'Small glass'], [250, 'Glass'], [500, 'Bottle']].map(([ml, label]) => (
-        <button key={ml} type="button" onClick={() => add(ml as number)} className="rounded-[14px] bg-surface-2 py-4 flex flex-col items-center gap-1">
+        <button key={ml} type="button" onClick={() => add(ml as number)} className="rounded-[14px] bg-muted py-4 flex flex-col items-center gap-1">
           <span className="num-tight text-[20px] font-semibold text-water">{ml}<span className="text-[12px] font-normal"> ml</span></span>
-          <span className="text-[12px] text-muted">{label}</span>
+          <span className="text-[12px] text-muted-foreground">{label}</span>
         </button>
       ))}
     </div>
@@ -70,7 +70,7 @@ function SleepForm({ onDone }: { onDone: () => void }) {
         <Field label="Went to bed"><input type="time" value={bed} onChange={(e) => setBed(e.target.value)} /></Field>
         <Field label="Woke up"><input type="time" value={wake} onChange={(e) => setWake(e.target.value)} /></Field>
       </div>
-      <p className="mb-4 text-[14px] text-muted">That's <span className="num-tight text-ink font-semibold">{minutesToHM(minutes)}</span> in bed.</p>
+      <p className="mb-4 text-[14px] text-muted-foreground">That's <span className="num-tight text-foreground font-semibold">{minutesToHM(minutes)}</span> in bed.</p>
       <PrimaryButton tone="body" disabled={minutes < 30 || minutes > 16 * 60}>Save sleep</PrimaryButton>
     </form>
   )

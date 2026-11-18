@@ -85,6 +85,21 @@ describe('rejections', () => {
   it('non-transaction text', () => expect(rej('Dear customer, your KYC is updated. Thank you for banking with us.')).toBe('not_transaction'))
 })
 
+describe('investment SMS', () => {
+  const rej = (body: string) => {
+    const r = parseSms(body, RX)
+    return isParsed(r) ? 'parsed' : r.rejected
+  }
+  // Fund-house / broker confirmations repeat money the bank SMS already recorded.
+  it('rejects mutual fund allotment confirmations', () =>
+    expect(rej('Dear Investor, your SIP purchase of Rs.5,000.00 in HDFC Flexi Cap Fund - Growth under Folio No 12345678 has been processed at NAV 1,234.56. Units allotted: 4.05. -CAMS')).toBe('not_transaction'))
+  it('rejects broker trade confirmations', () =>
+    expect(rej('Order executed: purchased 10 INFY @ Rs 1,500.00 on NSE. Contract note sent to your email. -Zerodha')).toBe('not_transaction'))
+  it('still parses the bank debit for an SIP, even with a folio', () => {
+    expect(ok('Rs 5000 debited from A/c XX1234 for SIP Folio 12345678 on 05-11-26. Avl Bal Rs 20,000.00')).toMatchObject({ amountPaise: 500000, type: 'debit', account: '1234' })
+  })
+})
+
 describe('balance is never taken as the amount', () => {
   it('ignores "Avl Bal" even when it comes first', () => {
     const r = ok('Avl Bal Rs 50,000.00. Rs 300.00 debited from A/c XX1234 to OLA on 18-11-26.')

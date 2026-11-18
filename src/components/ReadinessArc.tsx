@@ -37,17 +37,17 @@ export function ReadinessArc({ r, onExplain }: { r: Readiness | null; onExplain:
       <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
         {r ? (
           <>
-            <span className="text-[13px] text-muted">Readiness</span>
+            <span className="text-[13px] text-muted-foreground">Readiness</span>
             <span className="num text-[76px] font-bold leading-none" style={{ color: band!.color }}>{r.score}</span>
             <span className="mt-2 text-[15px] font-medium">{band!.text}</span>
           </>
         ) : (
           <>
-            <span className="num text-[56px] font-bold leading-none text-muted">--</span>
-            <span className="mt-2 text-[14px] text-muted text-center max-w-[180px]">Log last night's sleep to see today's readiness</span>
+            <span className="num text-[56px] font-bold leading-none text-muted-foreground">--</span>
+            <span className="mt-2 text-[14px] text-muted-foreground text-center max-w-[180px]">Log last night's sleep to see today's readiness</span>
           </>
         )}
-        <button type="button" onClick={onExplain} className="mt-2 text-[12px] text-muted underline underline-offset-4">How this is worked out</button>
+        <button type="button" onClick={onExplain} className="mt-2 text-[12px] text-muted-foreground underline underline-offset-4">How this is worked out</button>
       </div>
     </section>
   )

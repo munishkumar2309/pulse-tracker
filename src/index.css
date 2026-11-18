@@ -1,106 +1,167 @@
-@import "@fontsource-variable/archivo/wdth.css";
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
 
-/* Design tokens — documented in docs/UI.md. Dark is the default; light follows the OS or data-theme. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Design tokens (docs/UI.md). Fitbit-style: light grey page, white rounded cards, one colour per metric.
+  shadcn names are the source of truth; old Pulse names (--bg, --surface, --line, --ink…) are aliases.
+  Theme: follows the OS; Settings can force it via <html class="dark"> or data-theme="light".
+*/
 :root {
-  --bg: #0E1822;          /* monsoon night */
-  --surface: #16232F;
-  --surface-2: #1E2E3C;
-  --line: #2A3B4A;
-  --ink: #E8EEF2;
-  --muted: #8B9CAB;
-  --body: #F2A93B;        /* turmeric — health side */
-  --money: #2FB8A6;       /* peacock — money side */
-  --bad: #EF6A5B;
-  --ok: #7BC67E;
-  --ring-steps: #F2A93B;
-  --ring-food: #F07FA0;
-  --ring-water: #5AB4F0;
-  --ring-sleep: #A88BF0;
-  color-scheme: dark;
-}
+  --radius: 1.25rem;
+  --background: #F1F3F4;
+  --foreground: #1A1F24;
+  --card: #FFFFFF;
+  --card-foreground: #1A1F24;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1F24;
+  --primary: #0E9F8E;            /* teal: buttons, links, money */
+  --primary-foreground: #FFFFFF;
+  --secondary: #E8EDEF;
+  --secondary-foreground: #1A1F24;
+  --muted: #ECEFF1;              /* fills, ring tracks, inputs */
+  --muted-foreground: #5D6973;   /* secondary text */
+  --accent: #E6F5F3;
+  --accent-foreground: #0B6E63;
+  --destructive: #D93F2B;
+  --border: #E2E6E9;
+  --input: #DDE2E5;
+  --ring: #0E9F8E;
 
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #F3F5F2;
-    --surface: #FFFFFF;
-    --surface-2: #E9EDEA;
-    --line: #D5DCD8;
-    --ink: #13202B;
-    --muted: #5E6E7B;
-    --body: #C27C12;
-    --money: #128A7B;
-    --bad: #C8442F;
-    --ok: #3F8F44;
-    --ring-steps: #D48B17;
-    --ring-food: #D2557B;
-    --ring-water: #2A86C4;
-    --ring-sleep: #7A5BD6;
-    color-scheme: light;
-  }
-}
-:root[data-theme="light"] {
-  --bg: #F3F5F2; --surface: #FFFFFF; --surface-2: #E9EDEA; --line: #D5DCD8; --ink: #13202B; --muted: #5E6E7B;
-  --body: #C27C12; --money: #128A7B; --bad: #C8442F; --ok: #3F8F44;
-  --ring-steps: #D48B17; --ring-food: #D2557B; --ring-water: #2A86C4; --ring-sleep: #7A5BD6;
+  /* Metric colours */
+  --steps: #F29F05;
+  --food: #E64980;
+  --water: #1C8EE8;
+  --sleep: #7559E8;
+  --weight: #0E9F8E;
+  --ok: #2F9E44;
+  --warn: #E8890C;
+  --bad: #E03131;
+
+  /* Charts / categories */
+  --chart-1: #0E9F8E; --chart-2: #F29F05; --chart-3: #E64980; --chart-4: #1C8EE8; --chart-5: #7559E8;
+  --cat-c1: #F2711C; --cat-c2: #E8A70C; --cat-c3: #40A02B; --cat-c4: #1C8EE8; --cat-c5: #D35400;
+  --cat-c6: #B04FD8; --cat-c7: #3B6FE0; --cat-c8: #E0645A; --cat-c9: #9C8455; --cat-c10: #0E9F8E;
+  --cat-c11: #E64980; --cat-c12: #7559E8; --cat-c13: #2BB5A0; --cat-c14: #4A9BD8; --cat-c15: #C2A31A;
+  --cat-c16: #8795A1; --cat-c17: #56687A; --cat-c18: #2F9E44; --cat-c19: #6E7F8D;
+
+  --shadow-card: 0 1px 2px rgb(16 24 32 / 0.05), 0 2px 10px rgb(16 24 32 / 0.04);
   color-scheme: light;
 }
 
-/* Spend category hues (paired with text labels everywhere, never colour alone). */
-:root {
-  --cat-c1: #F07F5B; --cat-c2: #E9B44C; --cat-c3: #8CC269; --cat-c4: #4FB6D8; --cat-c5: #D9734E;
-  --cat-c6: #C47BE0; --cat-c7: #5E9BEA; --cat-c8: #E0897F; --cat-c9: #B0A07A; --cat-c10: #39B89C;
-  --cat-c11: #EB6F9A; --cat-c12: #A88BF0; --cat-c13: #7DD3C0; --cat-c14: #6FA8DC; --cat-c15: #D3C46A;
-  --cat-c16: #98A6B3; --cat-c17: #56687A; --cat-c18: #7BC67E; --cat-c19: #6E7F8D;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+}
+
+/* Dark values: applied by the OS (unless forced light) and by .dark */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0A0D10; --foreground: #ECEFF1; --card: #171B1F; --card-foreground: #ECEFF1;
+    --popover: #1D2226; --popover-foreground: #ECEFF1; --primary: #2CC4B1; --primary-foreground: #04201C;
+    --secondary: #22282D; --secondary-foreground: #ECEFF1; --muted: #242A30; --muted-foreground: #9AA5AF;
+    --accent: #12302C; --accent-foreground: #7FE3D5; --destructive: #FF6B57; --border: #262C31; --input: #2C3338; --ring: #2CC4B1;
+    --steps: #FFB224; --food: #FF6B9E; --water: #4DABF7; --sleep: #9C87FF; --weight: #2CC4B1; --ok: #51CF66; --warn: #FFA94D; --bad: #FF6B6B;
+    --chart-1: #2CC4B1; --chart-2: #FFB224; --chart-3: #FF6B9E; --chart-4: #4DABF7; --chart-5: #9C87FF;
+    --shadow-card: none;
+  }
+}
+.dark {
+  --background: #0A0D10; --foreground: #ECEFF1; --card: #171B1F; --card-foreground: #ECEFF1;
+  --popover: #1D2226; --popover-foreground: #ECEFF1; --primary: #2CC4B1; --primary-foreground: #04201C;
+  --secondary: #22282D; --secondary-foreground: #ECEFF1; --muted: #242A30; --muted-foreground: #9AA5AF;
+  --accent: #12302C; --accent-foreground: #7FE3D5; --destructive: #FF6B57; --border: #262C31; --input: #2C3338; --ring: #2CC4B1;
+  --steps: #FFB224; --food: #FF6B9E; --water: #4DABF7; --sleep: #9C87FF; --weight: #2CC4B1; --ok: #51CF66; --warn: #FFA94D; --bad: #FF6B6B;
+  --chart-1: #2CC4B1; --chart-2: #FFB224; --chart-3: #FF6B9E; --chart-4: #4DABF7; --chart-5: #9C87FF;
+  --shadow-card: none;
+  color-scheme: dark;
+}
+
+/* Back-compat aliases for older Pulse token names (keep until no file uses them). */
+:root, .dark {
+  --bg: var(--background); --surface: var(--card); --surface-2: var(--muted); --line: var(--border); --ink: var(--foreground);
+  --body: var(--steps); --money: var(--primary);
+  --ring-steps: var(--steps); --ring-food: var(--food); --ring-water: var(--water); --ring-sleep: var(--sleep);
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-line: var(--line);
-  --color-ink: var(--ink);
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
-  --color-body: var(--body);
-  --color-money: var(--money);
-  --color-bad: var(--bad);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-steps: var(--steps);
+  --color-food: var(--food);
+  --color-water: var(--water);
+  --color-sleep: var(--sleep);
+  --color-weight: var(--weight);
   --color-ok: var(--ok);
-  --color-steps: var(--ring-steps);
-  --color-food: var(--ring-food);
-  --color-water: var(--ring-water);
-  --color-sleep: var(--ring-sleep);
-  --font-sans: "Archivo Variable", system-ui, sans-serif;
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  /* legacy utility names */
+  --color-money: var(--primary);
+  --color-body: var(--steps);
+  --radius-sm: calc(var(--radius) * 0.4);
+  --radius-md: calc(var(--radius) * 0.6);
+  --radius-lg: calc(var(--radius) * 0.8);
+  --radius-xl: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.3);
+  --shadow-card: var(--shadow-card);
 }
 
-html, body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  -webkit-tap-highlight-color: transparent;
-}
-body { min-height: 100dvh; }
-
-/* Readings: expanded width, tabular figures — the instrument-panel look. */
-.num { font-stretch: 125%; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.num-tight { font-stretch: 112%; font-variant-numeric: tabular-nums; }
-
-:focus-visible { outline: 2px solid var(--money); outline-offset: 2px; border-radius: 6px; }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
-
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-
-/* In @layer base so Tailwind utilities (sr-only, w-5…) can still override these. */
 @layer base {
-  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 10px 12px;
-    color: var(--ink);
+  * { @apply border-border outline-ring/50; }
+  html { @apply font-sans; -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-background text-foreground antialiased; min-height: 100dvh; }
+  /* Form fields (base layer so utilities like sr-only / w-5 still win). */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea {
+    background: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 14px;
+    padding: 12px 14px;
+    color: var(--foreground);
     width: 100%;
     font-size: 16px; /* stops mobile zoom on focus */
   }
+  input:focus, select:focus, textarea:focus { border-color: var(--ring); outline: none; }
+}
+
+/* Readings: tabular figures so numbers don't jump while animating. */
+.num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-weight: 700; }
+.num-tight { font-variant-numeric: tabular-nums; }
+
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.dark .card { border: 1px solid var(--border); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border: 1px solid var(--border); } }
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Leaflet map container (Activity screen) */
+.leaflet-container { border-radius: var(--radius); background: var(--muted); font-family: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

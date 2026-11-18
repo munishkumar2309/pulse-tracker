@@ -1,6 +1,6 @@
 # Health
 
-Files: `src/health/calc.ts`, `src/health/recovery.ts`, `src/db/hooks.ts` (`targetsFor`, `useToday`), `src/screens/Today.tsx`, `Food.tsx`, `Trends.tsx`, `src/components/LogSheets.tsx`.
+Files: `src/health/calc.ts`, `src/health/recovery.ts`, `src/health/sources.ts` (which source wins), `src/db/hooks.ts` (`targetsFor`, `useToday`), `src/screens/Today.tsx`, `Food.tsx`, `Trends.tsx`, `src/components/LogSheets.tsx`.
 
 ## Formulas (`calc.ts`)
 | What | Formula | Source |
@@ -36,6 +36,13 @@ Teardown ideas not built yet (candidates for Phase 5): a morning yes/no journal 
 - Today's rings open the log sheets: steps, water (150/250/500 ml), sleep (bed and wake time; a bedtime after the wake time means the previous day). The Food ring goes to the Food tab.
 - Weight comes from "Log weight". The latest entry by date is "current weight" for every target.
 - Steps, sleep and weight come from Health Connect automatically in Phase 4. `source` records where each entry came from.
+- **The phone's own tracking** (`source: 'phone'`): steps from the phone's motion sensors (Google Recording API) and sleep detected from motion and light (Google Sleep API). See docs/ANDROID.md. Phone sleep is an **estimate** with no stages; it must be labelled as such wherever its source is shown.
+
+## Merging sources (`src/health/sources.ts`, tested)
+| Data | Rule |
+|---|---|
+| Steps | Manual always wins. Otherwise keep the **higher** count of phone and Health Connect (they count the same walking, so adding them would double count; each misses steps the other caught). A count never goes down. |
+| Sleep | Manual for that morning wins. Phone nights under 60 min are ignored. A phone night is skipped if any entry overlaps it, and a Health Connect session (watch, with stages) **replaces** an overlapping phone night. Overlap is compared as instants, so UTC and local ISO strings mix safely. |
 
 ## Food (Phase 3)
 Files: `src/data/ifct.json` (generated), `scripts/build-ifct.mjs`, `src/data/dishes.ts`, `src/health/foodSearch.ts`, `src/health/openFoodFacts.ts`, `src/components/BarcodeScanner.tsx`, `src/screens/Food.tsx`, `src/health/food.test.ts`.

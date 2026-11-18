@@ -1,6 +1,6 @@
-// You (Settings): profile, budgets, app lock, phone sync, appearance, backup/restore, delete data.
+// You (Settings): profile, budgets, app lock, phone sync, food photos, appearance, backup/restore, delete data.
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronRight, Fingerprint, Palette, RefreshCw, Save, Target, Wallet } from 'lucide-react'
+import { Camera, ChevronRight, Fingerprint, Palette, RefreshCw, Save, Target, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { IconDot, Page } from '../components/motion'
 import { Field, PrimaryButton, Sheet } from '../components/Sheet'
@@ -10,6 +10,7 @@ import { useLatestWeight, useProfile } from '../db/hooks'
 import { db } from '../db/schema'
 import { dayKey, formatINR } from '../lib/format'
 import { getThemeMode, setThemeMode, type ThemeMode } from '../lib/theme'
+import { CLOUD_MODEL, getVisionSettings, setVisionSettings } from '../health/foodRecognizers'
 import { success, tap } from '../native/haptics'
 import { getLockSettings, lockAvailability, lockSupported, setLockSettings, unlock, type LockSettings } from '../native/lock'
 import { smsSupported, syncSmsInbox } from '../native/sms'
@@ -29,6 +30,7 @@ export function Settings() {
   async function exportData() {
     const out: Record<string, unknown[]> = {}
     for (const t of TABLES) out[t] = await db.table(t).toArray()
+    out.meta = (out.meta as { key: string }[]).filter((m) => !m.key.startsWith('secret:')) // never export API keys
     const blob = new Blob([JSON.stringify({ app: 'pulse', version: 2, exportedAt: new Date().toISOString(), data: out })], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -76,6 +78,7 @@ export function Settings() {
 
       <AppLock />
       <PhoneSync />
+      <FoodPhotos />
 
       <section className="card mt-3 p-4">
         <div className="flex items-center gap-2"><IconDot color="var(--sleep)"><Palette size={16} /></IconDot><h2 className="text-[15px] font-semibold">Appearance</h2></div>
@@ -230,5 +233,31 @@ function BudgetForm({ onDone }: { onDone: () => void }) {
       ))}
       <PrimaryButton>Save budgets</PrimaryButton>
     </form>
+  )
+}
+
+function FoodPhotos() {
+  const saved = useLiveQuery(getVisionSettings, [])
+  const [key, setKey] = useState<string | null>(null)
+  if (!saved) return null
+  const apiKey = key ?? saved.apiKey
+  const save = (cloud: boolean, k = apiKey) => setVisionSettings({ cloud, apiKey: k })
+  return (
+    <section className="card mt-3 p-4">
+      <div className="flex items-center gap-2"><IconDot color="var(--food)"><Camera size={16} /></IconDot><h2 className="text-[15px] font-semibold">Food photos</h2></div>
+      <p className="mt-2 text-[13.5px] text-muted-foreground">Photos are recognised on this phone by default (80 Indian dishes; the model downloads once, about 90 MB). The photo isn't uploaded.</p>
+      <label className="mt-3 flex items-center justify-between gap-3 text-[15px]">
+        <span>Cloud recognition<span className="block text-[12.5px] text-muted-foreground">Better with thalis and mixed plates, and guesses portions. Sends the photo to Anthropic (Claude) with your own API key. Billed to your Anthropic account per photo.</span></span>
+        <Switch checked={saved.cloud} onCheckedChange={(on) => { tap(); save(on) }} aria-label="Cloud recognition" />
+      </label>
+      {saved.cloud && (
+        <form className="mt-3" onSubmit={(e) => { e.preventDefault(); save(true, apiKey); success(); setKey(null) }}>
+          <Field label="Anthropic API key" hint={`Stored only on this phone and left out of backups. Model: ${CLOUD_MODEL}. Get a key at console.anthropic.com.`}>
+            <input type="password" autoComplete="off" value={apiKey} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-…" />
+          </Field>
+          <PrimaryButton disabled={key === null || key === saved.apiKey}>{saved.apiKey ? 'Update key' : 'Save key'}</PrimaryButton>
+        </form>
+      )}
+    </section>
   )
 }

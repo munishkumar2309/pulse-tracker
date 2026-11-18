@@ -57,6 +57,8 @@ App lock is off by default. Turning it on (You → App lock) requires one succes
 - **Not verified yet:** the native code was written without a local Android SDK, so the first CI build is its first compile, and the Recording/Sleep API behaviour still needs checking on the phone.
 - Android 14+ has Health Connect built in. On older versions, install "Health Connect by Android" from the Play Store.
 - The barcode scanner uses the WebView's `BarcodeDetector` with the CAMERA permission. If the WebView lacks it, typed entry still works.
+- **Food photos** use `<input type="file" accept="image/*" capture="environment">`, which Capacitor's WebView turns into the camera app (CAMERA permission, already declared). On-phone recognition runs ONNX Runtime in WebAssembly inside the WebView (about 0.5–2 s per photo on a recent phone; not yet measured on a device).
+- **Food model size trade-off:** the ONNX Runtime `.wasm` (27 MB) is always in the APK. The model (about 90 MB, int8) is either bundled, by running `npm run export:food-model` before `npm run build` (APK grows by about 90 MB, works offline from day one), or downloaded from Hugging Face on first use. CI does not bundle it yet. Capacitor returns 404 for missing files under `/models/`, which Transformers.js relies on.
 
 ## Signing key trade-off
 The key and its default password are committed to the **private** repo so CI can sign without setup. Anyone with repo access could sign an "update". To harden this: add a `PULSE_KEYSTORE_PASSWORD` GitHub secret after re-encrypting the p12 with that password, and remove the default from `build.gradle`.

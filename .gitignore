@@ -3,3 +3,4 @@ dist
 android/app/build
 *.local
 .playwright-mcp
+public/models

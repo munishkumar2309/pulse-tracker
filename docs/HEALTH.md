@@ -50,10 +50,28 @@ Files: `src/data/ifct.json` (generated), `scripts/build-ifct.mjs`, `src/data/dis
 | Source | What | Quality |
 |---|---|---|
 | **IFCT 2017** (NIN/ICMR) via `@ifct2017/compositions` 2.0.9 (MIT) | 542 raw/edible foods, per 100 g, with a Hindi name used as an alias. Energy is converted from kJ (÷4.184). Regenerate with `npm run build:foods`. | Lab-measured; the most accurate source |
-| **Dishes** (`dishes.ts`) | ~100 common Indian dishes per natural unit (katori 150 g, roti 40 g, plate…), converted to per 100 g | **Estimates** for typical recipes, labelled in the UI. A test checks each dish's kcal is within 20% of 4P+4C+9F (alcohol exempt). |
+| **Dishes** (`dishes.ts`) | 127 common Indian dishes per natural unit (katori 150 g, roti 40 g, plate…), converted to per 100 g | **Estimates** for typical recipes, labelled in the UI. A test checks each dish's kcal is within 20% of 4P+4C+9F (alcohol exempt). |
 | **Open Food Facts** (ODbL) | Packaged foods by barcode (`world.` API v2) or name (`in.` search, Indian products) | Crowd-sourced. Entries whose kcal contradicts their own macros by >35% are dropped, and the UI says to check against the packet. Search runs only on a button press (official limit ≈10 searches/min). |
 
 - **Search** (`searchFoods`): every query word must prefix-match a word in the name, alias or brand. Ranking: name starts with the query, then name-word matches, then a dish bonus, then saved foods, then shorter names.
 - **Logging:** a pick opens the portion picker (natural unit, 100 g or grams). `foodLogs` keeps a nutrition snapshot. OFF and custom foods picked are saved to `foods`, so they work offline and appear under Recent. Recent = distinct foods from the last 30 days.
 - **Barcode:** native `BarcodeDetector` (Chrome / Android WebView), with typed entry as the fallback. The Android build needs the CAMERA permission (Phase 4).
+## Food photo recognition
+Files: `src/components/FoodPhoto.tsx` (UI), `src/health/foodVision.ts` (pure mapping, `foodVision.test.ts`), `src/health/foodRecognizers.ts` (runs the models), `src/data/foodLabels.ts` (model label → Pulse dish), `scripts/export-food-model.py`.
+
+Flow: Add food → **📷 Photo** → take or pick a photo (shrunk to 1024 px JPEG) → guesses → tap a Pulse food → the normal portion picker → log. **Calories always come from Pulse's own data** (dishes = estimates, IFCT), not from the model. The one exception is "Log AI estimate", offered only when cloud recognition found an item that Pulse has no food for; it is logged as "<name> (AI estimate)".
+
+| Engine | Model | Privacy | Notes |
+|---|---|---|---|
+| **On the phone** (default) | `dima806/indian_food_image_detection`: ViT-base fine-tune, 80 Indian dishes, **Apache-2.0**, about 75% validation accuracy as reported by its author (not verified by us). Run with Transformers.js 4 + ONNX Runtime Web (WebAssembly, CPU), int8 (`dtype: 'q8'`, about 90 MB). | Photo never leaves the phone | Classifies **one dish per photo**. Top 3 guesses with score ≥ 0.08; below 0.5 the top guess shows "not sure". |
+| **Cloud** (opt-in, You → Food photos) | Claude (`claude-opus-5-5`, effort `low`, structured output: items with name, grams, kcal, confidence; server-side refusal fallback on) with the user's own Anthropic API key | Photo is sent to Anthropic | Several items per plate (thalis) and portion guesses. The guessed grams prefill the portion picker. |
+
+Why this model: it was the most capable Indian food model found on Hugging Face (Nov 2026) under a licence that allows use: 80 classes. Others, such as the 20-class ViT/Swin fine-tunes at about 93–94%, cover fewer dishes, and their training set (`indian_food_images`) has no licence. Weakness: its classes lean towards sweets and North Indian curries. It has **no idli, dosa, sambar, plain rice or mixed thali**, so for those use search or cloud recognition. Its training images come from a Kaggle set with an "other" licence: fine for this personal app; check it before any commercial use.
+
+**Labels** (`foodLabels.ts`): all 80 are listed. 47 match a Pulse dish exactly and 19 use a stand-in (`approx`, e.g. imarti → jalebi, labelled "closest match"). 26 dishes were added to `dishes.ts` for this, as estimates under the same macro test. The remaining 14 (regional sweets) have no data and offer "Search…". The model's real label list comes from its `config.json`; the export script writes `labels.json` to compare against the map.
+
+**Model files:** loaded from `public/models/<model id>/` when bundled (`npm run export:food-model`, Python + optimum; then fully offline and Hugging Face is never contacted), otherwise downloaded once from Hugging Face and cached by the browser. **The download path only works if that Hugging Face repo has ONNX weights. This was not verified (huggingface.co was unreachable from the build sandbox), so bundling is the safe route.** The ONNX Runtime `.wasm` is bundled by Vite (imported with `?url`), not fetched from the jsdelivr CDN.
+
+**API key:** stored in `db.meta` under `secret:anthropicKey`; `secret:` rows are never written to backups.
+
 - **Not done:** USDA FoodData Central (optional; would need the user's own key), custom recipe builder, INDB cooked-dish data (licence unchecked).

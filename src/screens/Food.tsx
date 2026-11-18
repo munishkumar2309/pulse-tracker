@@ -1,7 +1,8 @@
-// Food: kcal left → macros → meals. Add: search (dishes + IFCT + saved), recent, barcode, online search, manual.
+// Food: kcal left → macros → meals. Add: search (dishes + IFCT + saved), recent, photo, barcode, online search, manual.
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback, useMemo, useState } from 'react'
 import { BarcodeScanner } from '../components/BarcodeScanner'
+import { FoodPhoto } from '../components/FoodPhoto'
 import { Field, PrimaryButton, Sheet } from '../components/Sheet'
 import { targetsFor, useLatestWeight, useProfile } from '../db/hooks'
 import { db, type FoodLog, type Meal } from '../db/schema'
@@ -97,7 +98,7 @@ function Macro({ label, value, target }: { label: string; value: number; target?
   )
 }
 
-type Stage = { kind: 'search' } | { kind: 'portion'; food: FoodItem } | { kind: 'scan' } | { kind: 'manual' }
+type Stage = { kind: 'search' } | { kind: 'portion'; food: FoodItem; grams?: number } | { kind: 'scan' } | { kind: 'manual' } | { kind: 'photo' }
 
 function AddFood({ meal, onDone }: { meal: Meal; onDone: () => void }) {
   const [stage, setStage] = useState<Stage>({ kind: 'search' })
@@ -137,7 +138,14 @@ function AddFood({ meal, onDone }: { meal: Meal; onDone: () => void }) {
     }
   }, [])
 
-  if (stage.kind === 'portion') return <Portion food={stage.food} meal={meal} onBack={() => setStage({ kind: 'search' })} onDone={onDone} />
+  if (stage.kind === 'portion') return <Portion food={stage.food} grams={stage.grams} meal={meal} onBack={() => setStage({ kind: 'search' })} onDone={onDone} />
+  if (stage.kind === 'photo') return (
+    <FoodPhoto
+      onPick={(food, grams) => setStage({ kind: 'portion', food, grams })}
+      onSearch={(name) => { setQ(name); setOnline(null); setStage({ kind: 'search' }) }}
+      onAiEstimate={async (name, kcal) => { await db.foodLogs.add({ date: dayKey(), meal, foodId: 'quick', name: `${name} (AI estimate)`, grams: 0, kcal, protein: 0, carbs: 0, fat: 0 }); onDone() }}
+    />
+  )
   if (stage.kind === 'scan') return (<><BarcodeScanner onCode={onCode} />{busy && <p className="mt-3 text-[14px] text-muted-foreground" role="status">Looking up the product…</p>}</>)
   if (stage.kind === 'manual') return <QuickAdd meal={meal} onDone={onDone} />
 
@@ -145,8 +153,9 @@ function AddFood({ meal, onDone }: { meal: Meal; onDone: () => void }) {
   return (
     <div>
       <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setOnline(null) }} placeholder="Search dal, roti, paneer, banana…" autoFocus aria-label="Search foods" />
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => setStage({ kind: 'scan' })} className="rounded-[10px] bg-muted py-2.5 text-[14px]">Scan a barcode</button>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <button type="button" onClick={() => setStage({ kind: 'photo' })} className="rounded-[10px] bg-muted py-2.5 text-[14px]">📷 Photo</button>
+        <button type="button" onClick={() => setStage({ kind: 'scan' })} className="rounded-[10px] bg-muted py-2.5 text-[14px]">Barcode</button>
         <button type="button" onClick={() => setStage({ kind: 'manual' })} className="rounded-[10px] bg-muted py-2.5 text-[14px]">Enter calories</button>
       </div>
       {msg && <p className="mt-3 text-[14px] text-bad" role="alert">{msg}</p>}
@@ -180,10 +189,11 @@ function AddFood({ meal, onDone }: { meal: Meal; onDone: () => void }) {
   )
 }
 
-function Portion({ food, meal, onBack, onDone }: { food: FoodItem; meal: Meal; onBack: () => void; onDone: () => void }) {
+function Portion({ food, grams: suggested, meal, onBack, onDone }: { food: FoodItem; grams?: number; meal: Meal; onBack: () => void; onDone: () => void }) {
   const options = servingsFor(food)
-  const [opt, setOpt] = useState(0)
-  const [qty, setQty] = useState(options[0].grams === 1 ? 100 : 1)
+  // A portion suggested from a photo opens in grams; otherwise the natural unit.
+  const [opt, setOpt] = useState(suggested ? options.length - 1 : 0)
+  const [qty, setQty] = useState(suggested ?? (options[0].grams === 1 ? 100 : 1))
   const grams = options[opt].grams * qty
   const n = nutritionFor(food, grams)
   return (
@@ -195,6 +205,7 @@ function Portion({ food, meal, onBack, onDone }: { food: FoodItem; meal: Meal; o
     }}>
       <button type="button" onClick={onBack} className="mb-2 text-[14px] text-muted-foreground">Back to search</button>
       <p className="text-[17px] font-semibold">{food.name}</p>
+      {suggested && <p className="text-[13px] text-muted-foreground">Portion guessed from your photo ({suggested} g). Adjust it if needed.</p>}
       <p className="text-[13px] text-muted-foreground">{food.brand ? `${food.brand}. ` : ''}{food.estimate ? 'Estimate for a typical recipe.' : food.source === 'ifct' ? 'IFCT 2017 value, per raw/edible portion.' : food.source === 'off' ? 'From Open Food Facts, entered by volunteers. Check it against the packet.' : ''}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Field label="How much">

@@ -39,8 +39,15 @@ def main() -> None:
     (stage / "onnx").mkdir(parents=True)
     # Transformers.js dtype "q8" loads onnx/model_quantized.onnx
     quantize_dynamic(str(TMP / "model.onnx"), str(stage / "onnx" / "model_quantized.onnx"), weight_type=QuantType.QUInt8)
+    # Write config.json and preprocessor_config.json from the model itself: optimum-onnx 0.1.0 doesn't
+    # put the image processor's config in its output folder (CI run #5 failed on that).
+    from transformers import AutoConfig, AutoImageProcessor
+
+    AutoConfig.from_pretrained(MODEL).save_pretrained(stage)
+    AutoImageProcessor.from_pretrained(MODEL, use_fast=False).save_pretrained(stage)
     for name in ("config.json", "preprocessor_config.json"):
-        shutil.copy(TMP / name, stage / name)
+        if not (stage / name).exists():
+            sys.exit(f"{name} was not written; cannot use this export.")
 
     labels = sorted(json.loads((stage / "config.json").read_text())["id2label"].values())
     (stage / "labels.json").write_text(json.dumps(labels, indent=1))

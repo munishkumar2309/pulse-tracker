@@ -32,12 +32,13 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Cache food model
+      # restore + save (not actions/cache) so a failed export is never cached.
+      - name: Restore food model
         id: food-model-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: public/models
-          key: food-model-${{ hashFiles('scripts/export-food-model.py') }}
+          key: food-model-v2-${{ hashFiles('scripts/export-food-model.py') }}
 
       - name: Export food photo model
         id: food-model
@@ -48,9 +49,18 @@ jobs:
           pip install "optimum-onnx[onnxruntime]==0.1.0" transformers
           npm run export:food-model
 
+      - name: Save food model
+        if: steps.food-model.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: public/models
+          key: food-model-v2-${{ hashFiles('scripts/export-food-model.py') }}
+
       - name: Warn if the food model is missing
         if: steps.food-model.outcome == 'failure'
-        run: echo "::warning::Food model export failed. This APK will download the model from Hugging Face on the first photo."
+        run: |
+          rm -rf public/models
+          echo "::warning::Food model export failed. This APK will download the model from Hugging Face on the first photo."
 
       - name: Check food model labels
         if: hashFiles('public/models/**/labels.json') != ''

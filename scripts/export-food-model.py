@@ -32,15 +32,24 @@ def main() -> None:
 
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
-    (OUT / "onnx").mkdir(parents=True, exist_ok=True)
+    # Build the output next to TMP and move it into place only when complete, so a failed or partial
+    # export never leaves files where the app (and the CI cache) would pick them up.
+    stage = TMP.parent / "food-model-stage"
+    shutil.rmtree(stage, ignore_errors=True)
+    (stage / "onnx").mkdir(parents=True)
     # Transformers.js dtype "q8" loads onnx/model_quantized.onnx
-    quantize_dynamic(str(TMP / "model.onnx"), str(OUT / "onnx" / "model_quantized.onnx"), weight_type=QuantType.QUInt8)
+    quantize_dynamic(str(TMP / "model.onnx"), str(stage / "onnx" / "model_quantized.onnx"), weight_type=QuantType.QUInt8)
     for name in ("config.json", "preprocessor_config.json"):
-        shutil.copy(TMP / name, OUT / name)
+        shutil.copy(TMP / name, stage / name)
 
-    labels = sorted(json.loads((OUT / "config.json").read_text())["id2label"].values())
-    (OUT / "labels.json").write_text(json.dumps(labels, indent=1))
-    size = (OUT / "onnx" / "model_quantized.onnx").stat().st_size / 1e6
+    labels = sorted(json.loads((stage / "config.json").read_text())["id2label"].values())
+    (stage / "labels.json").write_text(json.dumps(labels, indent=1))
+    size = (stage / "onnx" / "model_quantized.onnx").stat().st_size / 1e6
+    if size < 20:
+        sys.exit(f"Quantized model is only {size:.1f} MB; expected about 90 MB. Not using it.")
+    shutil.rmtree(OUT, ignore_errors=True)
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(stage), str(OUT))
     print(f"Exported {len(labels)} labels, model {size:.0f} MB -> {OUT}")
 
 

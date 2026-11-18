@@ -1,0 +1,106 @@
+@import "@fontsource-variable/archivo/wdth.css";
+@import "tailwindcss";
+
+/* Design tokens — documented in docs/UI.md. Dark is the default; light follows the OS or data-theme. */
+:root {
+  --bg: #0E1822;          /* monsoon night */
+  --surface: #16232F;
+  --surface-2: #1E2E3C;
+  --line: #2A3B4A;
+  --ink: #E8EEF2;
+  --muted: #8B9CAB;
+  --body: #F2A93B;        /* turmeric — health side */
+  --money: #2FB8A6;       /* peacock — money side */
+  --bad: #EF6A5B;
+  --ok: #7BC67E;
+  --ring-steps: #F2A93B;
+  --ring-food: #F07FA0;
+  --ring-water: #5AB4F0;
+  --ring-sleep: #A88BF0;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F3F5F2;
+    --surface: #FFFFFF;
+    --surface-2: #E9EDEA;
+    --line: #D5DCD8;
+    --ink: #13202B;
+    --muted: #5E6E7B;
+    --body: #C27C12;
+    --money: #128A7B;
+    --bad: #C8442F;
+    --ok: #3F8F44;
+    --ring-steps: #D48B17;
+    --ring-food: #D2557B;
+    --ring-water: #2A86C4;
+    --ring-sleep: #7A5BD6;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F3F5F2; --surface: #FFFFFF; --surface-2: #E9EDEA; --line: #D5DCD8; --ink: #13202B; --muted: #5E6E7B;
+  --body: #C27C12; --money: #128A7B; --bad: #C8442F; --ok: #3F8F44;
+  --ring-steps: #D48B17; --ring-food: #D2557B; --ring-water: #2A86C4; --ring-sleep: #7A5BD6;
+  color-scheme: light;
+}
+
+/* Spend category hues (paired with text labels everywhere, never colour alone). */
+:root {
+  --cat-c1: #F07F5B; --cat-c2: #E9B44C; --cat-c3: #8CC269; --cat-c4: #4FB6D8; --cat-c5: #D9734E;
+  --cat-c6: #C47BE0; --cat-c7: #5E9BEA; --cat-c8: #E0897F; --cat-c9: #B0A07A; --cat-c10: #39B89C;
+  --cat-c11: #EB6F9A; --cat-c12: #A88BF0; --cat-c13: #7DD3C0; --cat-c14: #6FA8DC; --cat-c15: #D3C46A;
+  --cat-c16: #98A6B3; --cat-c17: #56687A; --cat-c18: #7BC67E; --cat-c19: #6E7F8D;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-body: var(--body);
+  --color-money: var(--money);
+  --color-bad: var(--bad);
+  --color-ok: var(--ok);
+  --color-steps: var(--ring-steps);
+  --color-food: var(--ring-food);
+  --color-water: var(--ring-water);
+  --color-sleep: var(--ring-sleep);
+  --font-sans: "Archivo Variable", system-ui, sans-serif;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+body { min-height: 100dvh; }
+
+/* Readings: expanded width, tabular figures — the instrument-panel look. */
+.num { font-stretch: 125%; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.num-tight { font-stretch: 112%; font-variant-numeric: tabular-nums; }
+
+:focus-visible { outline: 2px solid var(--money); outline-offset: 2px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* In @layer base so Tailwind utilities (sr-only, w-5…) can still override these. */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--ink);
+    width: 100%;
+    font-size: 16px; /* stops mobile zoom on focus */
+  }
+}

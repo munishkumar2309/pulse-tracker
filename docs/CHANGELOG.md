@@ -3,6 +3,7 @@
 Newest first. One line per change: date, area, what changed, which files and docs.
 
 ## 2026-11-18
+- **CI fix: food-model export, part 2.** Run #7 failed because `AutoImageProcessor` needs Pillow, which wasn't installed. Added `pillow==13.0.0`. Run #5's APK accidentally bundled that run's half-finished model (config without preprocessor), so don't install #5. (.github/workflows/android.yml, scripts/export-food-model.py)
 - **CI fix: food-model export.** Run #5 failed with `FileNotFoundError: build/food-model-onnx/preprocessor_config.json`, because optimum-onnx 0.1.0 doesn't write the image processor config. The script now writes `config.json` and `preprocessor_config.json` with `AutoConfig` / `AutoImageProcessor.save_pretrained`. transformers is pinned to 4.57.6, the version pip resolved with optimum 2.1. (scripts/export-food-model.py, .github/workflows/android.yml)
 - **CI fix: never cache a failed food-model export.** Run #5's export failed, but `actions/cache` still saved `public/models` (59 MB). It is now split into restore + save, and save runs only on success. A failed export also deletes `public/models`. The export script builds into a staging folder and moves it into place only when complete (and rejects a model under 20 MB). New cache key `food-model-v2`. (.github/workflows/android.yml, scripts/export-food-model.py)
 - **Workflow:** work is now pushed directly to `main` (owner's rule, recorded in CLAUDE.md). This merge brought in the month-wise comparison, food photo recognition, money forecasts and the bundled food model.

@@ -9,7 +9,7 @@ Also writes labels.json: compare it with src/data/foodLabels.ts (every label sho
 
 Usage (needs internet and Python 3.10+; CI runs this in .github/workflows/android.yml):
     pip install --index-url https://download.pytorch.org/whl/cpu torch
-    pip install "optimum-onnx[onnxruntime]" transformers
+    pip install "optimum-onnx[onnxruntime]" transformers pillow
     npm run export:food-model
 """
 import json

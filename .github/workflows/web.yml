@@ -1,0 +1,49 @@
+# Web preview: builds the same app for the browser on every push to the `web` branch
+# and publishes it to GitHub Pages (https://munishkumar2309.github.io/pulse-tracker/).
+# For quick UI/logic checks on the phone without installing an APK. Native features (SMS,
+# Health Connect, phone sensors, app lock) use their browser fallbacks there.
+name: Web preview
+
+on:
+  push:
+    branches: [web]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the built site to the gh-pages branch
+
+concurrency:
+  group: web-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: /pulse-tracker/
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: 'Web preview from ${{ github.sha }}'

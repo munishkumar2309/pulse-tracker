@@ -7,6 +7,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // '/' for the APK and dev; the web preview (GitHub Pages) builds with BASE_PATH=/pulse-tracker/.
+  base: process.env.BASE_PATH ?? '/',
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [
     {

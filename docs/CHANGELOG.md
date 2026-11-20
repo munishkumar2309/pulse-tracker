@@ -2,6 +2,9 @@
 
 Newest first. One line per change: date, area, what changed, which files and docs.
 
+## 2026-11-20
+- **Web preview branch.** New `web` branch for fast UI/logic testing in the phone browser: every push builds and publishes to GitHub Pages (https://munishkumar2309.github.io/pulse-tracker/). Work happens on `web`; on the owner's "final" it is merged into `main` for the APK. `vite.config.ts` takes `base` from `BASE_PATH` (default `/`, so the APK is unchanged); the food model path now uses `import.meta.env.BASE_URL`. (.github/workflows/web.yml, vite.config.ts, health/foodRecognizers.ts; CLAUDE.md, docs/ANDROID.md, ARCHITECTURE.md)
+
 ## 2026-11-18
 - **Food model in the APK: verified.** CI run #8 exported the model (80 labels, 87 MB), cached it, and the label check passed (80/80 match `foodLabels.ts`). APK artifact `pulse-8.apk` (76 MB zip). Still to check on the phone: recognition speed and accuracy on real plates.
 - **CI fix: food-model export, part 2.** Run #7 failed because `AutoImageProcessor` needs Pillow, which wasn't installed. Added `pillow==13.0.0`. Run #5's APK accidentally bundled that run's half-finished model (config without preprocessor), so don't install #5. (.github/workflows/android.yml, scripts/export-food-model.py)

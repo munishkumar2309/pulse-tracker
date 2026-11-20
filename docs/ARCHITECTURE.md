@@ -48,7 +48,7 @@ src/
   screens/              Today, Activity (GPS), Food, Money, Trends, Settings ("You"), ProfileForm
   native/               Android bridges (no-ops in a browser): sms.ts (+test), health.ts, phone.ts (phone's own steps/sleep), widgets.ts (home-screen widget feed), sync.ts, lock.ts (fingerprint/screen-lock app lock), gps.ts (walk tracking), haptics.ts. See docs/ANDROID.md. `source` values: manual, health_connect, phone, sms, statement, import
 android/                Capacitor Android project (our SmsReaderPlugin.java lives here)
-.github/workflows/      android.yml builds the signed APK on every push to main
+.github/workflows/      android.yml builds the signed APK on every push to main; web.yml publishes the web preview (GitHub Pages) on every push to web
 docs/                   these guides; research/ holds the Fitbit/WHOOP teardown
 ```
 

@@ -41,6 +41,12 @@ App lock is off by default. Turning it on (You → App lock) requires one succes
 - **Local:** needs JDK 21 + Android SDK (not installed on this laptop): `npm run build && npx cap sync android && cd android && ./gradlew assembleRelease`.
 - After changing anything in `src/`, CI handles the sync. When adding a Capacitor plugin, run `npx cap sync android` locally and commit the `android/` changes.
 
+## Web preview (fast testing, no APK)
+- `.github/workflows/web.yml` runs on every push to the `web` branch: `npm ci` → `npm test` → `npm run build` with `BASE_PATH=/pulse-tracker/` → publishes `dist/` to the `gh-pages` branch → GitHub Pages serves https://munishkumar2309.github.io/pulse-tracker/.
+- One-time setup: GitHub → Settings → Pages → Source: **Deploy from a branch**, branch `gh-pages`, folder `/ (root)`.
+- Same code as the APK. `base` in `vite.config.ts` comes from `BASE_PATH` (default `/`, used by the APK). SMS, Health Connect, phone sensors and app lock use their browser fallbacks; the food model isn't bundled, so photo recognition downloads it from Hugging Face on first use. Data stays in that browser's IndexedDB, separate from the app's.
+- Flow: work on `web` → check on the phone browser → when the owner says "final", merge `web` into `main` for the APK.
+
 ## Installing on the phone: USB (ADB) only
 **Opening the APK on the phone does not work in India.** Play Protect's *enhanced fraud protection* (Oct 2024) blocks apps that request READ_SMS/RECEIVE_SMS when installed from a browser, messaging app or file manager, and there is no "install anyway" option. Installing over USB with ADB works (verified 2026-11-18 on a Galaxy S23 FE, Android 16), and the SMS permissions are then installer-exempt, so they can be granted normally.
 

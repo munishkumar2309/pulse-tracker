@@ -48,9 +48,9 @@ async function loadClassifier(onProgress?: Progress): Promise<Classifier> {
   // A bundled copy (scripts/export-food-model.py) makes it fully offline: then never ask Hugging Face,
   // or the optional-file checks (tokenizer) would fail without internet. Otherwise download once, then cached.
   // GET + parse (not HEAD/content-type): works however the WebView's local server answers.
-  const bundled = await fetch(`/models/${LOCAL_MODEL}/config.json`).then((r) => (r.ok ? r.json() : null)).then((c) => !!c?.id2label).catch(() => false)
+  const bundled = await fetch(`${import.meta.env.BASE_URL}models/${LOCAL_MODEL}/config.json`).then((r) => (r.ok ? r.json() : null)).then((c) => !!c?.id2label).catch(() => false)
   env.allowLocalModels = bundled
-  env.localModelPath = '/models/'
+  env.localModelPath = `${import.meta.env.BASE_URL}models/`
   env.allowRemoteModels = !bundled
   const wasm = env.backends.onnx.wasm
   if (wasm) wasm.wasmPaths = { wasm: ortWasmUrl } // bundled copy instead of the jsdelivr CDN; the loader is built into ORT's bundle

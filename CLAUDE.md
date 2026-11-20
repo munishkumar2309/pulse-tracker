@@ -40,7 +40,9 @@ Hand work to the agent that owns the area. Each one knows its files, docs and "d
 - Native features go through `src/native/*` bridges that have browser fallbacks, so everything runs in a desktop browser.
 - Original design only. Never copy Fitbit or Whoop code, assets, logos or names.
 - **Commits:** no `Co-Authored-By: Claude` trailer or any Claude attribution in commits or PRs (the owner's explicit rule).
-- **Branches:** push directly to `main` (the owner's explicit rule for this project). No feature branches or pull requests unless asked. Every push to `main` builds the APK in GitHub Actions.
+- **Branches (owner's rule):** two long-lived branches, no pull requests unless asked.
+  - `web`: **day-to-day work goes here.** Every push publishes the web preview to GitHub Pages (https://munishkumar2309.github.io/pulse-tracker/, about 2 min) so the owner can check UI and logic on the phone browser without installing an APK. Same code as the app; native features use their browser fallbacks.
+  - `main`: the Android app. Only when the owner says **"final"**: merge `web` into `main` (`git checkout main && git merge web && git push origin main`), which builds the APK in GitHub Actions. Keep `web` and `main` the same code; never commit app-only changes to `main` without bringing them back into `web`.
 
 ## Status
 Plan: `C:\Users\munish.kumar_bajajca\.claude\plans\so-i-want-to-playful-cocke.md`. Phases: 0 REA teardown → 1 health core → 2 money → 3 food → 4 Android → 5 polish. The current phase is tracked in `docs/CHANGELOG.md`.
